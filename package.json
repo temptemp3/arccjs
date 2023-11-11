@@ -16,5 +16,13 @@
   },
   "type": "module",
   "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/temptemp3/arccjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/temptemp3/arccjs/issues"
+  },
+  "homepage": "https://github.com/temptemp3/arccjs#readme",
   "description": ""
 }
