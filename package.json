@@ -1,6 +1,6 @@
 {
   "name": "temptemp3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,8 +8,8 @@
   },
   "author": "",
   "license": "ISC",
-  "engines" : { 
-    "npm" : ">=10.2.0",
-    "node" : ">=21.1.0"
+  "engines": {
+    "npm": ">=10.2.0",
+    "node": ">=21.1.0"
   }
 }
