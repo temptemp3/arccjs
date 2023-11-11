@@ -1,7 +1,6 @@
 {
-  "name": "contractjs",
+  "name": "arccjs",
   "version": "1.0.5",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "node index.test.js"
@@ -15,5 +14,7 @@
   "dependencies": {
     "algosdk": "^2.7.0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {},
+  "description": ""
 }
