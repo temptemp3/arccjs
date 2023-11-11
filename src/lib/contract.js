@@ -1,5 +1,5 @@
 import algosdk from "algosdk";
-import { oneAddress } from "../util/account.js";
+import { oneAddress } from "../utils/account.js";
 
 export default class CONTRACT {
   constructor(contractId, algodClient, spec, acc, simulate = true) {
