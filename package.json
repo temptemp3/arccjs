@@ -14,5 +14,6 @@
   },
   "dependencies": {
     "algosdk": "^2.7.0"
-  }
+  },
+  "type": "module"
 }
