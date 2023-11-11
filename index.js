@@ -1,2 +1,2 @@
-import CONTRACT from "./src/lib/contract";
+import CONTRACT from "./src/lib/contract.js";
 export default CONTRACT;
