@@ -12,10 +12,10 @@
     "node": ">=21.1.0"
   },
   "dependencies": {
-    "algosdk": "^2.7.0"
+    "algosdk": "^2.7.0",
+    "arccjs": "^1.1.1"
   },
   "type": "module",
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/temptemp3/arccjs.git"

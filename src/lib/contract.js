@@ -1,7 +1,7 @@
 import algosdk from "algosdk";
 import { oneAddress } from "../utils/account.js";
 
-async function waitForConfirmation(algodClient, txId) {
+async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
   let lastRound = status["last-round"];
   while (true) {
@@ -61,7 +61,7 @@ export default class CONTRACT {
           }
           const res = await this.createAndSendTxn(abiMethod, args);
           if (this.waitForConfirmation) {
-            await waitForConfirmation(this.algodClient, res.txId);
+            await doWaitForConfirmation(this.algodClient, res.txId);
           }
           return res;
         }
