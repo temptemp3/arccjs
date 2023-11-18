@@ -12,8 +12,7 @@
     "node": ">=21.1.0"
   },
   "dependencies": {
-    "algosdk": "^2.7.0",
-    "arccjs": "^1.1.1"
+    "algosdk": "^2.7.0"
   },
   "type": "module",
   "repository": {
