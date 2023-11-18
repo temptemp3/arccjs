@@ -1,8 +1,38 @@
 import algosdk from "algosdk";
 import { oneAddress } from "../utils/account.js";
 
+async function waitForConfirmation(algodClient, txId) {
+  let status = await algodClient.status().do();
+  let lastRound = status["last-round"];
+  while (true) {
+    const pendingInfo = await algodClient
+      .pendingTransactionInformation(txId)
+      .do();
+    if (
+      pendingInfo["confirmed-round"] !== null &&
+      pendingInfo["confirmed-round"] > 0
+    ) {
+      // Confirmed transaction
+      console.log(
+        "Transaction confirmed in round",
+        pendingInfo["confirmed-round"]
+      );
+      break;
+    }
+    lastRound++;
+    await algodClient.statusAfterBlock(lastRound).do();
+  }
+}
+
 export default class CONTRACT {
-  constructor(contractId, algodClient, spec, acc, simulate = true) {
+  constructor(
+    contractId,
+    algodClient,
+    spec,
+    acc,
+    simulate = true,
+    waitForConfirmation = false
+  ) {
     this.contractId = contractId;
     this.algodClient = algodClient;
     this.contractABI = new algosdk.ABIContract(spec);
@@ -12,7 +42,7 @@ export default class CONTRACT {
     this.fee = 1000;
     this.simulationResultHandler = this.decodeSimulationResponse;
     this.sender = acc?.addr ?? oneAddress;
-
+    this.waitForConfirmation = waitForConfirmation;
     for (const methodSpec of spec.methods) {
       const abiMethod = this.contractABI.getMethodByName(methodSpec.name);
       this[methodSpec.name] = async function (...args) {
@@ -29,7 +59,11 @@ export default class CONTRACT {
             }
             return sim;
           }
-          return await this.createAndSendTxn(abiMethod, args);
+          const res = await this.createAndSendTxn(abiMethod, args);
+          if (this.waitForConfirmation) {
+            await waitForConfirmation(this.algodClient, res.txId);
+          }
+          return res;
         }
       }.bind(this);
     }
