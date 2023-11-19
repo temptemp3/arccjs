@@ -12,7 +12,8 @@
     "node": ">=21.1.0"
   },
   "dependencies": {
-    "algosdk": "^2.7.0"
+    "algosdk": "^2.7.0",
+    "buffer": "^6.0.3"
   },
   "type": "module",
   "repository": {

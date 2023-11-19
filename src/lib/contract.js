@@ -1,5 +1,6 @@
 import algosdk from "algosdk";
 import { oneAddress } from "../utils/account.js";
+import { Buffer } from 'buffer';
 
 async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
