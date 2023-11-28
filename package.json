@@ -9,7 +9,7 @@
   "license": "ISC",
   "engines": {
     "npm": ">=10.2.0",
-    "node": ">=21.1.0"
+    "node": ">=20.9.0"
   },
   "dependencies": {
     "algosdk": "^2.7.0",
