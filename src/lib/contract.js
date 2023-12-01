@@ -145,6 +145,7 @@ const getEventsByNames = async (ci, names, query) => {
   for (const txn of atxns) {
     const evts = getEvents(txn, selectors);
     for (const [k, v] of Object.entries(evts)) {
+      if (!v.length) continue;
       events[k].push(v);
     }
   }
@@ -277,6 +278,14 @@ export default class CONTRACT {
 
   getEventByName(event) {
     return getEventByName(this.spec.events, event);
+  }
+
+  getEvents(query) {
+    return getEventsByNames(
+      this,
+      this.spec.events.map((x) => x.name),
+      query
+    );
   }
 
   async createAndSendTxn(abiMethod, args) {

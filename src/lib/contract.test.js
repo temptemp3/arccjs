@@ -437,3 +437,62 @@ it("arc200_Approval", () => {
     expect(await ci.arc200_Approval()).toStrictEqual([]);
   })();
 });
+
+it("getEvents()", () => {
+  expect(ci.getEvents).toBeDefined();
+  (async () => {
+    expect(await ci.getEvents()).toStrictEqual([
+      {
+        events: [
+          [
+            1519106,
+            1699029707,
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+            "VIAGCPULN6FUTHUNPQZDRQIHBT7IUVT264B3XDXLZNX7OZCJP6MEF7JFQU",
+            10000000000000000n,
+          ],
+          [
+            1920785,
+            1700425041,
+            "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+            "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+            1000000n,
+          ],
+        ],
+        name: "arc200_Transfer",
+        selector: "7983c35c",
+        signature: "arc200_Transfer(address,address,uint256)",
+      },
+      {
+        events: [],
+        name: "arc200_Approval",
+        selector: "1969f865",
+        signature: "arc200_Approval(address,address,uint256)",
+      },
+    ]);
+  })();
+});
+
+it("getEvents({address:0})", () => {
+  expect(ci.getEvents).toBeDefined();
+  (async () => {
+    expect(
+      await ci.getEvents({
+        address: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+      })
+    ).toStrictEqual([
+      {
+        events: [],
+        name: "arc200_Transfer",
+        selector: "7983c35c",
+        signature: "arc200_Transfer(address,address,uint256)",
+      },
+      {
+        events: [],
+        name: "arc200_Approval",
+        selector: "1969f865",
+        signature: "arc200_Approval(address,address,uint256)",
+      },
+    ]);
+  })();
+});
