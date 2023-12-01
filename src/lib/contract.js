@@ -1,6 +1,7 @@
-import algosdk from "algosdk";
+import algosdk, { encodeAddress, bytesToBigInt } from "algosdk";
 import { oneAddress } from "../utils/account.js";
-import { Buffer } from 'buffer';
+import { Buffer } from "buffer";
+import sha512 from "js-sha512";
 
 async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
@@ -25,10 +26,126 @@ async function doWaitForConfirmation(algodClient, txId) {
   }
 }
 
+export const genericHash = (arr) => {
+  return sha512.sha512_256.array(arr);
+};
+
+export const getEventSignature = (event) => {
+  const signature =
+    event.name + "(" + event.args.map((a) => a.type).join(",") + ")";
+  return signature;
+};
+
+export const getEventSelector = (event) => {
+  return Buffer.from(
+    genericHash(getEventSignature(event)).slice(0, 4)
+  ).toString("hex");
+};
+
+const selectors = [
+  "7983c35c", // arc200_Transfer
+  "1969f865", // arc200_Approval
+];
+const decode = (x) => {
+  const argv = Buffer.from(x, "base64");
+  const arg0 = argv.slice(0, 4).toString("hex");
+  const arg1 = encodeAddress(argv.slice(4, 36));
+  const arg2 = encodeAddress(argv.slice(36, 68));
+  const arg3 = bytesToBigInt(argv.slice(68, 100));
+  return [arg1, arg2, arg3];
+};
+
+const getSelectors = (logs) =>
+  logs.map((x) => Buffer.from(x, "base64").slice(0, 4).toString("hex"));
+
+const isEvent = (x) => selectors.some((y) => x.includes(y));
+
+const selectEvent = (selector, mSelectors, logs) => {
+  const index = mSelectors.indexOf(selector);
+  return index;
+};
+
+const getEvents = (txn, selectors) => {
+  const events = {};
+  selectors.forEach((x) => (events[x] = []));
+  if (!txn.logs) return {};
+  const mSelectors = getSelectors(txn.logs);
+  if (!isEvent(mSelectors)) return {};
+  selectors.forEach((x) => {
+    const index = selectEvent(x, mSelectors);
+    if (index === -1) return;
+    events[x] = [
+      txn["confirmed-round"],
+      txn["round-time"],
+      ...decode(txn.logs[index]),
+    ];
+  });
+  return events;
+};
+
+const getEventsByNames = async (ci, names) => {
+  const events = {};
+  const txns = [];
+  const selectorNameLookup = {};
+  const selectorSignatureLookup = {};
+  const selectors = names.map((x) => {
+    const selector = getEventByName(ci.spec.events, x).getSelector();
+    const signature = getEventSignature(
+      ci.spec.events.find((y) => y.name === x)
+    );
+    selectorNameLookup[selector] = x;
+    selectorSignatureLookup[selector] = signature;
+    return selector;
+  });
+  selectors.forEach((x) => (events[x] = []));
+  let next;
+  do {
+    const itxns = await ci.indexerClient
+      .searchForTransactions()
+      .applicationID(ci.contractId)
+      .limit(1000)
+      .nextToken(next)
+      .do();
+    txns.push(itxns.transactions);
+    next = itxns["next-token"];
+    if (itxns.length < 1000) break;
+  } while (next);
+  const atxns = txns?.flat() || [];
+  for (const txn of atxns) {
+    const evts = getEvents(txn, selectors);
+    for (const [k, v] of Object.entries(evts)) {
+      events[k].push(v);
+    }
+  }
+  return (Object.entries(events) || []).map(([k, v]) => ({
+    name: selectorNameLookup[k],
+    signature: selectorSignatureLookup[k],
+    selector: k,
+    events: v,
+  }));
+};
+
+const getEventByName = (events, name) => {
+  const event = events.find((event) => event.name === name);
+  if (!event) {
+    throw new Error(`Event ${name} not found`);
+  }
+  return {
+    getSelector: () => getEventSelector(event),
+    next: () => {}, //() => Promise<Event<T>>,
+    nextUpToTime: () => {}, //(t: Time) => Promise<undefined | Event<T>>,
+    nextUpToNow: () => {}, //() => Promise<undefined | Event<T>>,
+    seek: () => {}, //(t: Time) => void,
+    seekNow: () => {}, //() => Promise<void>,
+    lastTime: () => {}, //() => Promise<Time>,
+    monitor: () => {}, //((Event<T>) => void) => Promise<void>,
+  };
+};
 export default class CONTRACT {
   constructor(
     contractId,
     algodClient,
+    indexerClient,
     spec,
     acc,
     simulate = true,
@@ -36,6 +153,8 @@ export default class CONTRACT {
   ) {
     this.contractId = contractId;
     this.algodClient = algodClient;
+    this.indexerClient = indexerClient;
+    this.spec = spec;
     this.contractABI = new algosdk.ABIContract(spec);
     this.sk = acc?.sk;
     this.simulate = simulate;
@@ -44,6 +163,11 @@ export default class CONTRACT {
     this.simulationResultHandler = this.decodeSimulationResponse;
     this.sender = acc?.addr ?? oneAddress;
     this.waitForConfirmation = waitForConfirmation;
+    for (const eventSpec of spec.events) {
+      this[eventSpec.name] = async function (...args) {
+        return await getEventsByNames(this, [eventSpec.name]);
+      }.bind(this);
+    }
     for (const methodSpec of spec.methods) {
       const abiMethod = this.contractABI.getMethodByName(methodSpec.name);
       this[methodSpec.name] = async function (...args) {
@@ -96,6 +220,10 @@ export default class CONTRACT {
 
   setFee(fee) {
     this.fee = fee;
+  }
+
+  getEventByName(event) {
+    return getEventByName(this.spec.events, event);
   }
 
   async createAndSendTxn(abiMethod, args) {
