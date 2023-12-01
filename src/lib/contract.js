@@ -42,25 +42,54 @@ export const getEventSelector = (event) => {
   ).toString("hex");
 };
 
-const selectors = [
-  "7983c35c", // arc200_Transfer
-  "1969f865", // arc200_Approval
-];
-const decode = (x) => {
+const decodeEventArgs = (args, x) => {
   const argv = Buffer.from(x, "base64");
-  const arg0 = argv.slice(0, 4).toString("hex");
-  const arg1 = encodeAddress(argv.slice(4, 36));
-  const arg2 = encodeAddress(argv.slice(36, 68));
-  const arg3 = bytesToBigInt(argv.slice(68, 100));
-  return [arg1, arg2, arg3];
+  const arg0 = argv.slice(0).toString("hex");
+  let index = 4;
+  const encoded = [];
+  args.forEach(({ type }) => {
+    switch (type) {
+      case "address":
+        encoded.push(encodeAddress(argv.slice(index, index + 32)));
+        index += 32;
+        break;
+      case "uint64":
+        encoded.push(bytesToBigInt(argv.slice(index, index + 8)));
+        index += 8;
+        break;
+      case "uint256":
+        encoded.push(bytesToBigInt(argv.slice(index, index + 32)));
+        index += 32;
+        break;
+      case "byte":
+        encoded.push(argv.slice(index, index + 1).toString("hex"));
+        index += 1;
+        break;
+      case "byte[8]":
+        encoded.push(argv.slice(index, index + 8).toString("hex"));
+        index += 8;
+        break;
+      case "byte[32]":
+        encoded.push(argv.slice(index, index + 32).toString("hex"));
+        index += 32;
+        break;
+      case "byte[96]":
+        encoded.push(argv.slice(index, index + 96).toString("hex"));
+        index += 96;
+        break;
+      default:
+        throw new Error(`Unknown type: ${type}`);
+    }
+  });
+  return encoded;
 };
 
 const getSelectors = (logs) =>
   logs.map((x) => Buffer.from(x, "base64").slice(0, 4).toString("hex"));
 
-const isEvent = (x) => selectors.some((y) => x.includes(y));
+const isEvent = (selectors, x) => selectors.some((y) => x.includes(y));
 
-const selectEvent = (selector, mSelectors, logs) => {
+const selectEvent = (selector, mSelectors) => {
   const index = mSelectors.indexOf(selector);
   return index;
 };
@@ -70,15 +99,11 @@ const getEvents = (txn, selectors) => {
   selectors.forEach((x) => (events[x] = []));
   if (!txn.logs) return {};
   const mSelectors = getSelectors(txn.logs);
-  if (!isEvent(mSelectors)) return {};
+  if (!isEvent(selectors, mSelectors)) return {};
   selectors.forEach((x) => {
     const index = selectEvent(x, mSelectors);
     if (index === -1) return;
-    events[x] = [
-      txn["confirmed-round"],
-      txn["round-time"],
-      ...decode(txn.logs[index]),
-    ];
+    events[x] = [txn["confirmed-round"], txn["round-time"], txn.logs[index]];
   });
   return events;
 };
@@ -117,12 +142,26 @@ const getEventsByNames = async (ci, names) => {
       events[k].push(v);
     }
   }
-  return (Object.entries(events) || []).map(([k, v]) => ({
-    name: selectorNameLookup[k],
-    signature: selectorSignatureLookup[k],
-    selector: k,
-    events: v.filter((x) => x.length > 0),
-  }));
+  return (Object.entries(events) || []).map(([k, v]) => {
+    const name = selectorNameLookup[k];
+    const signature = selectorSignatureLookup[k];
+    const selector = k;
+    const events = v.map((el) => [
+      ...el.slice(0, 2),
+      ...el
+        .slice(2)
+        .map((el) =>
+          decodeEventArgs(ci.spec.events.find((el) => el.name === name).args, el)
+        )
+        .flat(),
+    ]);
+    return {
+      name,
+      signature,
+      selector,
+      events,
+    };
+  });
 };
 
 const getEventByName = (events, name) => {
@@ -280,7 +319,6 @@ export default class CONTRACT {
       // Encode arguments
 
       const encodedArgs = args.map((arg, index) => {
-        //console.log({ index, arg, type: abiMethod.args[index].type });
         return abiMethod.args[index].type.encode(arg);
       });
 
