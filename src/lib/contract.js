@@ -121,7 +121,7 @@ const getEventsByNames = async (ci, names) => {
     name: selectorNameLookup[k],
     signature: selectorSignatureLookup[k],
     selector: k,
-    events: v,
+    events: v.filter((x) => x.length > 0),
   }));
 };
 
