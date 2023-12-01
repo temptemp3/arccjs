@@ -151,7 +151,10 @@ const getEventsByNames = async (ci, names) => {
       ...el
         .slice(2)
         .map((el) =>
-          decodeEventArgs(ci.spec.events.find((el) => el.name === name).args, el)
+          decodeEventArgs(
+            ci.spec.events.find((el) => el.name === name).args,
+            el
+          )
         )
         .flat(),
     ]);
@@ -204,7 +207,8 @@ export default class CONTRACT {
     this.waitForConfirmation = waitForConfirmation;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
-        return await getEventsByNames(this, [eventSpec.name]);
+        const response = await getEventsByNames(this, [eventSpec.name]);
+        return response[0]?.events ?? [];
       }.bind(this);
     }
     for (const methodSpec of spec.methods) {
