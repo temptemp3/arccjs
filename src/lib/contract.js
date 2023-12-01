@@ -108,7 +108,8 @@ const getEvents = (txn, selectors) => {
   return events;
 };
 
-const getEventsByNames = async (ci, names) => {
+const getEventsByNames = async (ci, names, query) => {
+  const { minRound, maxRound, address, round, txid } = query || {};
   const events = {};
   const txns = [];
   const selectorNameLookup = {};
@@ -125,15 +126,20 @@ const getEventsByNames = async (ci, names) => {
   selectors.forEach((x) => (events[x] = []));
   let next;
   do {
-    const itxns = await ci.indexerClient
+    const itxn = ci.indexerClient
       .searchForTransactions()
       .applicationID(ci.contractId)
       .limit(1000)
-      .nextToken(next)
-      .do();
-    txns.push(itxns.transactions);
-    next = itxns["next-token"];
-    if (itxns.length < 1000) break;
+      .nextToken(next);
+    if (minRound) itxn.minRound(minRound);
+    if (maxRound) itxn.maxRound(maxRound);
+    if (address) itxn.address(address);
+    if (round) itxn.round(round);
+    if (txid) itxn.txid(txid);
+    const res = await itxn.do();
+    txns.push(res.transactions);
+    next = res["next-token"];
+    if (res.length < 1000) break;
   } while (next);
   const atxns = txns?.flat() || [];
   for (const txn of atxns) {
@@ -207,7 +213,11 @@ export default class CONTRACT {
     this.waitForConfirmation = waitForConfirmation;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
-        const response = await getEventsByNames(this, [eventSpec.name]);
+        const response = await getEventsByNames(
+          this,
+          [eventSpec.name],
+          ...args
+        );
         return response[0]?.events ?? [];
       }.bind(this);
     }

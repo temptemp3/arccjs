@@ -1,3 +1,4 @@
+import { it } from "node:test";
 import CONTRACT, { genericHash, getEventSignature } from "./contract.js";
 
 const abi = {
@@ -35,6 +36,11 @@ class AlgorandIndexerClient {
         this.applicationIDVal = null;
         this.limitVal = null;
         this.nextTokenVal = null;
+        this.minRoundVal = 0;
+        this.maxRoundVal = -1;
+        this.addressVal = null;
+        this.roundVal = null;
+        this.txidVal = null;
       }
 
       applicationID(applicationID) {
@@ -49,6 +55,31 @@ class AlgorandIndexerClient {
 
       nextToken(nextToken) {
         this.nextTokenVal = nextToken;
+        return this;
+      }
+
+      minRound(minRound) {
+        this.minRoundVal = minRound;
+        return this;
+      }
+
+      maxRound(maxRound) {
+        this.maxRoundVal = maxRound;
+        return this;
+      }
+
+      address(address) {
+        this.addressVal = address;
+        return this;
+      }
+
+      round(round) {
+        this.roundVal = round;
+        return this;
+      }
+
+      txid(txid) {
+        this.txidVal = txid;
         return this;
       }
 
@@ -202,7 +233,20 @@ class AlgorandIndexerClient {
           nextToken: "nextTokenValue",
         };
 
-        return Promise.resolve(mockedResponse);
+        return Promise.resolve({
+          ...mockedResponse,
+          transactions: mockedResponse.transactions.filter(
+            (tx) =>
+              (this.minRoundVal === 0 ||
+                tx["confirmed-round"] >= this.minRoundVal) &&
+              (this.maxRoundVal === -1 ||
+                tx["confirmed-round"] <= this.maxRoundVal) &&
+              (this.addressVal === null || tx["sender"] === this.addressVal) &&
+              (this.roundVal === null ||
+                tx["confirmed-round"] === this.roundVal) &&
+              (this.txidVal === null || tx["id"] === this.txidVal)
+          ),
+        });
       }
     };
   }
@@ -250,6 +294,132 @@ it("arc200_Transfer", () => {
         "VIAGCPULN6FUTHUNPQZDRQIHBT7IUVT264B3XDXLZNX7OZCJP6MEF7JFQU",
         10000000000000000n,
       ],
+      [
+        1920785,
+        1700425041,
+        "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+        "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        1000000n,
+      ],
+    ]);
+  })();
+});
+
+it("arc200_Transfer({minRound:1})", () => {
+  (async () => {
+    expect(await ci.arc200_Transfer({ minRound: 1920785 })).toStrictEqual([
+      [
+        1920785,
+        1700425041,
+        "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+        "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        1000000n,
+      ],
+    ]);
+  })();
+});
+
+it("arc200_Transfer({maxRound:1})", () => {
+  (async () => {
+    expect(await ci.arc200_Transfer({ maxRound: 1519106 })).toStrictEqual([
+      [
+        1519106,
+        1699029707,
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+        "VIAGCPULN6FUTHUNPQZDRQIHBT7IUVT264B3XDXLZNX7OZCJP6MEF7JFQU",
+        10000000000000000n,
+      ],
+    ]);
+  })();
+});
+
+it("arc200_Transfer({address:0x0})", async () => {
+  expect(
+    await ci.arc200_Transfer({
+      address: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+    })
+  ).toStrictEqual([]);
+});
+
+it("arc200_Transfer({address:0x1})", async () => {
+  expect(
+    await ci.arc200_Transfer({
+      address: "VIAGCPULN6FUTHUNPQZDRQIHBT7IUVT264B3XDXLZNX7OZCJP6MEF7JFQU",
+    })
+  ).toStrictEqual([
+    [
+      1519106,
+      1699029707,
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+      "VIAGCPULN6FUTHUNPQZDRQIHBT7IUVT264B3XDXLZNX7OZCJP6MEF7JFQU",
+      10000000000000000n,
+    ],
+  ]);
+});
+
+it("arc200_Transfer({address:0x2})", () => {
+  (async () => {
+    expect(
+      await ci.arc200_Transfer({
+        address: "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+      })
+    ).toStrictEqual([
+      [
+        1920785,
+        1700425041,
+        "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+        "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        1000000n,
+      ],
+    ]);
+  })();
+});
+
+it("arc200_Transfer({round:0})", () => {
+  (async () => {
+    expect(
+      await ci.arc200_Transfer({
+        round: 1,
+      })
+    ).toStrictEqual([]);
+  })();
+});
+
+it("arc200_Transfer({round:1})", () => {
+  (async () => {
+    expect(
+      await ci.arc200_Transfer({
+        round: 1920785,
+      })
+    ).toStrictEqual([
+      [
+        1920785,
+        1700425041,
+        "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
+        "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        1000000n,
+      ],
+    ]);
+  })();
+});
+
+it("arc200_Transfer({txid:0})", () => {
+  (async () => {
+    expect(
+      await ci.arc200_Transfer({
+        txid: "_",
+      })
+    ).toStrictEqual([]);
+  })();
+});
+
+it("arc200_Transfer({txid:1})", () => {
+  (async () => {
+    expect(
+      await ci.arc200_Transfer({
+        txid: "ZWUTU6XHFFEWSTH3EBGHSLNFNNIBVXZSFVKXOV4FDQ4DX4AB3BGA",
+      })
+    ).toStrictEqual([
       [
         1920785,
         1700425041,
