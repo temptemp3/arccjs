@@ -103,7 +103,12 @@ const getEvents = (txn, selectors) => {
   selectors.forEach((x) => {
     const index = selectEvent(x, mSelectors);
     if (index === -1) return;
-    events[x] = [txn["confirmed-round"], txn["round-time"], txn.logs[index]];
+    events[x] = [
+      txn.id,
+      txn["confirmed-round"],
+      txn["round-time"],
+      txn.logs[index],
+    ];
   });
   return events;
 };
@@ -154,9 +159,9 @@ const getEventsByNames = async (ci, names, query) => {
     const signature = selectorSignatureLookup[k];
     const selector = k;
     const events = v.map((el) => [
-      ...el.slice(0, 2),
+      ...el.slice(0, 3),
       ...el
-        .slice(2)
+        .slice(3)
         .map((el) =>
           decodeEventArgs(
             ci.spec.events.find((el) => el.name === name).args,
