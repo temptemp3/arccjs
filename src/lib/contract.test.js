@@ -229,6 +229,167 @@ class AlgorandIndexerClient {
               },
               "tx-type": "appl",
             },
+            {
+              "application-transaction": {
+                accounts: [],
+                "application-args": [
+                  "to7/MA==",
+                  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPQkA=",
+                ],
+                "application-id": 21682819,
+                "foreign-apps": [6778021, 21682819, 6778021, 6778021],
+                "foreign-assets": [],
+                "global-state-schema": {
+                  "num-byte-slice": 0,
+                  "num-uint": 0,
+                },
+                "local-state-schema": {
+                  "num-byte-slice": 0,
+                  "num-uint": 0,
+                },
+                "on-completion": "noop",
+              },
+              "close-rewards": 0,
+              "closing-amount": 0,
+              "confirmed-round": 2396240,
+              fee: 2000,
+              "first-valid": 2396238,
+              "genesis-hash": "IXnoWtviVVJW5LGivNFc0Dq14V3kqaXuK2u5OQrdVZo=",
+              "genesis-id": "voitest-v1",
+              group: "d2QLyW16pJeWNv3MnUpt5rtJ70+qk9ISXu1k6dDiB70=",
+              id: "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+              "inner-txns": [
+                {
+                  "application-transaction": {
+                    accounts: [
+                      "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+                      "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+                    ],
+                    "application-args": [
+                      "SpaPjw==",
+                      "Ntkgf67JEzEIjXJGsaVfoP5NK6NovlqcTXV+TaODneY=",
+                      "A/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0=",
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPQkA=",
+                    ],
+                    "application-id": 6778021,
+                    "foreign-apps": [6778021],
+                    "foreign-assets": [],
+                    "global-state-schema": {
+                      "num-byte-slice": 0,
+                      "num-uint": 0,
+                    },
+                    "local-state-schema": {
+                      "num-byte-slice": 0,
+                      "num-uint": 0,
+                    },
+                    "on-completion": "noop",
+                  },
+                  "close-rewards": 0,
+                  "closing-amount": 0,
+                  "confirmed-round": 2396240,
+                  fee: 0,
+                  "first-valid": 2396238,
+                  "global-state-delta": [
+                    {
+                      key: "",
+                      value: {
+                        action: 1,
+                        bytes: "AAAAAAAAAAMAAAAAACSQUA==",
+                        uint: 0,
+                      },
+                    },
+                  ],
+                  "intra-round-offset": 2,
+                  "last-valid": 2397238,
+                  logs: [
+                    "2R5N2gAAAAAAAAAAAjbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9CQA==",
+                    "eYPDXDbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9CQA==",
+                    "GWn4ZTbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA41+pIl2/g==",
+                    "AAAAAAAACXgB",
+                    "FR98dYA=",
+                  ],
+                  "receiver-rewards": 0,
+                  "round-time": 1701994772,
+                  sender:
+                    "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+                  "sender-rewards": 0,
+                  "tx-type": "appl",
+                },
+                {
+                  "application-transaction": {
+                    accounts: [
+                      "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+                      "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+                    ],
+                    "application-args": [
+                      "SpaPjw==",
+                      "Ntkgf67JEzEIjXJGsaVfoP5NK6NovlqcTXV+TaODneY=",
+                      "A/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0=",
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPQkA=",
+                    ],
+                    "application-id": 6778021,
+                    "foreign-apps": [6778021],
+                    "foreign-assets": [],
+                    "global-state-schema": {
+                      "num-byte-slice": 0,
+                      "num-uint": 0,
+                    },
+                    "local-state-schema": {
+                      "num-byte-slice": 0,
+                      "num-uint": 0,
+                    },
+                    "on-completion": "noop",
+                  },
+                  "close-rewards": 0,
+                  "closing-amount": 0,
+                  "confirmed-round": 2396240,
+                  fee: 0,
+                  "first-valid": 2396238,
+                  "global-state-delta": [
+                    {
+                      key: "",
+                      value: {
+                        action: 1,
+                        bytes: "AAAAAAAAAAMAAAAAACSQUA==",
+                        uint: 0,
+                      },
+                    },
+                  ],
+                  "intra-round-offset": 2,
+                  "last-valid": 2397238,
+                  logs: [
+                    "2R5N2gAAAAAAAAAAAjbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9CQA==",
+                    "eYPDXDbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9CQA==",
+                    "GWn4ZTbZIH+uyRMxCI1yRrGlX6D+TSujaL5anE11fk2jg53mA/5CyAOjTv89qHvmwM6PFqQFnA5WQCzLcVh/3qN2WH0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA41+pIl2/g==",
+                    "AAAAAAAACXgB",
+                    "FR98dYA=",
+                  ],
+                  "receiver-rewards": 0,
+                  "round-time": 1701994772,
+                  sender:
+                    "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+                  "sender-rewards": 0,
+                  "tx-type": "appl",
+                },
+              ],
+              "intra-round-offset": 2,
+              "last-valid": 2397238,
+              logs: [
+                "rQu+RAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "AAAAAAAARUoAAAAAAAAAAIA=",
+                "AAAAAAAARVYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAg==",
+                "FR98dQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPQkC",
+              ],
+              "receiver-rewards": 0,
+              "round-time": 1701994772,
+              sender:
+                "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+              "sender-rewards": 0,
+              signature: {
+                sig: "UeS4vj+oEWIYGwz3gr/nh63xjcjTdu9PROLQZArZfFITsuMFPcQzh3A1rPc0MIilJ8QuipJe7ORZ+JcJVrrtDA==",
+              },
+              "tx-type": "appl",
+            },
           ],
           nextToken: "nextTokenValue",
         };
@@ -303,6 +464,22 @@ it("arc200_Transfer", () => {
         "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
         1000000n,
       ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        1000000n,
+      ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        1000000n,
+      ],
     ]);
   })();
 });
@@ -316,6 +493,22 @@ it("arc200_Transfer({minRound:1})", () => {
         1700425041,
         "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
         "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        1000000n,
+      ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        1000000n,
+      ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
         1000000n,
       ],
     ]);
@@ -420,19 +613,27 @@ it("arc200_Transfer({txid:0})", () => {
   })();
 });
 
-it("arc200_Transfer({txid:1})", () => {
+it("arc200_Transfer({txid:2})", () => {
   (async () => {
     expect(
       await ci.arc200_Transfer({
-        txid: "ZWUTU6XHFFEWSTH3EBGHSLNFNNIBVXZSFVKXOV4FDQ4DX4AB3BGA",
+        txid: "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
       })
     ).toStrictEqual([
       [
-        "ZWUTU6XHFFEWSTH3EBGHSLNFNNIBVXZSFVKXOV4FDQ4DX4AB3BGA",
-        1920785,
-        1700425041,
-        "2QI5WUXIIM66IN67AZ4IPP5LEXG7SVWOEXH54DQI3GUMQEK7GCNGE4RBMU",
-        "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        1000000n,
+      ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
         1000000n,
       ],
     ]);
@@ -442,7 +643,24 @@ it("arc200_Transfer({txid:1})", () => {
 it("arc200_Approval", () => {
   expect(ci.arc200_Approval).toBeDefined();
   (async () => {
-    expect(await ci.arc200_Approval()).toStrictEqual([]);
+    expect(await ci.arc200_Approval()).toStrictEqual([
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        999999995999998n,
+      ],
+      [
+        "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+        2396240,
+        1701994772,
+        "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+        "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+        999999995999998n,
+      ],
+    ]);
   })();
 });
 
@@ -468,7 +686,63 @@ it("getEvents()", () => {
             "IX4WXWK6BV6V7SHAYQ2N2Z7FHVXBGLMISNXQ4CJVBTXWMD5KMZUOZSSQM4",
             1000000n,
           ],
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            1000000n,
+          ],
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            1000000n,
+          ],
         ],
+        name: "arc200_Transfer",
+        selector: "7983c35c",
+        signature: "arc200_Transfer(address,address,uint256)",
+      },
+      {
+        events: [
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            999999995999998n,
+          ],
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            999999995999998n,
+          ],
+        ],
+        name: "arc200_Approval",
+        selector: "1969f865",
+        signature: "arc200_Approval(address,address,uint256)",
+      },
+    ]);
+  })();
+});
+
+it("getEvents({address:0})", () => {
+  (async () => {
+    expect(
+      await ci.getEvents({
+        address: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+      })
+    ).toStrictEqual([
+      {
+        events: [],
         name: "arc200_Transfer",
         selector: "7983c35c",
         signature: "arc200_Transfer(address,address,uint256)",
@@ -483,12 +757,68 @@ it("getEvents()", () => {
   })();
 });
 
-it("getEvents({address:0})", () => {
-  expect(ci.getEvents).toBeDefined();
+it("getEvents({minRound:1})", () => {
   (async () => {
     expect(
       await ci.getEvents({
-        address: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+        minRound: 2396240,
+      })
+    ).toStrictEqual([
+      {
+        events: [
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            1000000n,
+          ],
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            1000000n,
+          ],
+        ],
+        name: "arc200_Transfer",
+        selector: "7983c35c",
+        signature: "arc200_Transfer(address,address,uint256)",
+      },
+      {
+        events: [
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            999999995999998n,
+          ],
+          [
+            "JBSX23KJ7CA63QWN5A25V7CKZ5MKYYD3VJDYFPJCGJULFDCVZ3IQ",
+            2396240,
+            1701994772,
+            "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
+            "AP7EFSADUNHP6PNIPPTMBTUPC2SALHAOKZACZS3RLB755I3WLB67PPCJTY",
+            999999995999998n,
+          ],
+        ],
+        name: "arc200_Approval",
+        selector: "1969f865",
+        signature: "arc200_Approval(address,address,uint256)",
+      },
+    ]);
+  })();
+});
+
+it("getEvents({minRound:2})", () => {
+  (async () => {
+    expect(
+      await ci.getEvents({
+        minRound: 2396241,
       })
     ).toStrictEqual([
       {

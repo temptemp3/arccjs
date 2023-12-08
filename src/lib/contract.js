@@ -147,7 +147,13 @@ const getEventsByNames = async (ci, names, query) => {
     if (res.length < 1000) break;
   } while (next);
   const atxns = txns?.flat() || [];
-  for (const txn of atxns) {
+  const btxns = atxns
+    ?.filter((x) => !!x["inner-txns"])
+    ?.map((x) =>
+      x["inner-txns"].map((y) => ({ id: x.id, ...y }))
+    )
+    ?.flat();
+  for (const txn of [...atxns, ...btxns]) {
     const evts = getEvents(txn, selectors);
     for (const [k, v] of Object.entries(evts)) {
       if (!v.length) continue;
