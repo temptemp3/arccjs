@@ -146,14 +146,22 @@ const getEventsByNames = async (ci, names, query) => {
     next = res["next-token"];
     if (res.length < 1000) break;
   } while (next);
+  // array of txns
   const atxns = txns?.flat() || [];
-  const btxns = atxns
-    ?.filter((x) => !!x["inner-txns"])
-    ?.map((x) =>
-      x["inner-txns"].map((y) => ({ id: x.id, ...y }))
-    )
-    ?.flat();
-  for (const txn of [...atxns, ...btxns]) {
+  // array of innter txns depth 1
+  const btxns =
+    atxns
+      ?.filter((x) => !!x["inner-txns"])
+      ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
+      ?.flat() || [];
+  // array of inner txns depth 2
+  const ctxns =
+    btxns
+      ?.filter((x) => !!x["inner-txns"])
+      ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
+      ?.flat() || [];
+
+  for (const txn of [...atxns, ...btxns, ...ctxns]) {
     const evts = getEvents(txn, selectors);
     for (const [k, v] of Object.entries(evts)) {
       if (!v.length) continue;
