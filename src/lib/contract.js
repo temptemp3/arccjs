@@ -361,9 +361,14 @@ export default class CONTRACT {
 
       if (!sRes) return;
 
-      // !!!
-      const { unnamedResourcesAccessed } = sRes.txnGroups[0];
-      const { boxes } = unnamedResourcesAccessed ?? {};
+      const apps = []
+      const boxes = []
+      if(sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
+        boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes)
+      }
+      if(sRes.txnGroups[0]?.txnResults[1]?.unnamedResourcesAccessed?.apps) {
+        apps.push(...sRes.txnGroups[0].txnResults[1].unnamedResourcesAccessed.apps)
+      }
 
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
@@ -386,11 +391,11 @@ export default class CONTRACT {
         from: this.sender,
         appIndex: this.contractId,
         appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-        // !!!
         boxes: boxes?.map((box) => ({
           appIndex: box.app,
           name: box.name,
         })),
+        foreignApps: apps
       });
       if (this.paymentAmount > 0) {
         const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
