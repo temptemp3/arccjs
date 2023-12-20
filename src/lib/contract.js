@@ -87,6 +87,14 @@ const decodeEventArgs = (args, x) => {
         encoded.push([a, b, c]);
         break;
       }
+      case "(byte,byte[256])": {
+        const a = argv.slice(index, index + 1).toString("hex");
+        index += 1;
+        const b = argv.slice(index, index + 256).toString("hex");
+        index += 256;
+        encoded.push([a, b]);
+        break;
+      }
       default:
         throw new Error(`Unknown type: ${type}`);
     }
