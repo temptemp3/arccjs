@@ -105,6 +105,67 @@ const decodeEventArgs = (args, x) => {
         encoded.push([a, [b, c]]);
         break;
       }
+      case "(uint64,uint64,uint64,uint64,(uint64,uint64),uint64,(byte,byte[8]),byte[8],uint64,byte[8],uint64,byte[8],uint64,uint64,byte[8],uint64)": {
+        const a = bytesToBigInt(argv.slice(index, index + 8)); // uint64 ctInfo
+        index += 8;
+        const b = bytesToBigInt(argv.slice(index, index + 8)); // uint64 startBlock
+        index += 8;
+        const c = bytesToBigInt(argv.slice(index, index + 8)); // uint64 endBlock
+        index += 8;
+        const d = bytesToBigInt(argv.slice(index, index + 8)); // uint64 rewardTokenId
+        index += 8;
+        const e = bytesToBigInt(argv.slice(index, index + 8)); // (uint64,uint64) rewardsPerBlock
+        index += 8;
+        const f = bytesToBigInt(argv.slice(index, index + 8));
+        index += 8;
+        const g = bytesToBigInt(argv.slice(index, index + 8)); // uint64 stakedTokenId
+        index += 8;
+        const h = argv.slice(index, index + 1).toString("hex"); // (byte,byte[8]) pairTokenAId
+        index += 1;
+        const i = argv.slice(index, index + 8).toString("hex");
+        index += 8;
+        const j = argv.slice(index, index + 8).toString("hex"); // byte[8] pairTokenASymbol
+        index += 8;
+        const k = bytesToBigInt(argv.slice(index, index + 8)); // uint64 pairTokenBId
+        index += 8;
+        const l = argv.slice(index, index + 8).toString("hex"); // byte[8] pairTokenBSymbol
+        index += 8;
+        const m = bytesToBigInt(argv.slice(index, index + 8)); // uint64 rewardTokenDecimals
+        index += 8;
+        const n = argv.slice(index, index + 8).toString("hex"); // byte[8] rewardTokenSymbol
+        index += 8;
+        const o = bytesToBigInt(argv.slice(index, index + 8)); // uint64 stakedTokenDecimals
+        index += 8;
+        const p = bytesToBigInt(argv.slice(index, index + 8)); // uint64 stakedTokenPoolId
+        index += 8;
+        const r = argv.slice(index, index + 8).toString("hex"); // byte[8] stakedTokenSymbol
+        index += 8;
+        const s = bytesToBigInt(argv.slice(index, index + 8)); // uint64 stakedTokenTotalSupply
+        index += 8;
+        encoded.push([
+          a, // uint64 ctInfo
+          b, // uint64 startBlock
+          c, // uint64 endBlock
+          d, // uint64 rewardTokenId
+          [e, f], // (uint64,uint64) rewardsPerBlock
+          g, // uint64 stakedTokenId
+          [h, i], // (byte,byte[8]) pairTokenAId
+          j, // byte[8] pairTokenASymbol
+          k, // uint64 pairTokenBId
+          l, // byte[8] pairTokenBSymbol
+          m, // uint64 rewardTokenDecimals
+          n, // byte[8] rewardTokenSymbol
+          o, // uint64 stakedTokenDecimals
+          p, // uint64 stakedTokenPoolId
+          r, // byte[8] stakedTokenSymbol
+          s, // uint64 stakedTokenTotalSupply
+        ]);
+        break;
+      }
+      case "byte[0]": {
+        encoded.push([]);
+        break;
+      }
       default:
         throw new Error(`Unknown type: ${type}`);
     }
@@ -379,13 +440,15 @@ export default class CONTRACT {
 
       if (!sRes) return;
 
-      const apps = []
-      const boxes = []
-      if(sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
-        boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes)
+      const apps = [];
+      const boxes = [];
+      if (sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
+        boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
       }
-      if(sRes.txnGroups[0]?.txnResults[1]?.unnamedResourcesAccessed?.apps) {
-        apps.push(...sRes.txnGroups[0].txnResults[1].unnamedResourcesAccessed.apps)
+      if (sRes.txnGroups[0]?.txnResults[1]?.unnamedResourcesAccessed?.apps) {
+        apps.push(
+          ...sRes.txnGroups[0].txnResults[1].unnamedResourcesAccessed.apps
+        );
       }
 
       // Get the suggested transaction parameters
@@ -413,7 +476,7 @@ export default class CONTRACT {
           appIndex: box.app,
           name: box.name,
         })),
-        foreignApps: apps
+        foreignApps: apps,
       });
       if (this.paymentAmount > 0) {
         const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
