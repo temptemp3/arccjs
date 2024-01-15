@@ -644,7 +644,9 @@ export default class CONTRACT {
       // Decode the response based on the methodSpec
       //HACK: Hacking this because the decode function doesn't work on bytes
       let result;
-      if (abiMethod.returns.type.childType == "byte") {
+      if (abiMethod.returns.type == "void") {
+        result = null;
+      } else if (abiMethod.returns.type.childType == "byte") {
         result = new TextDecoder().decode(res_ui);
       } else {
         result = abiMethod.returns.type.decode(res_ui);
