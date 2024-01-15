@@ -166,6 +166,10 @@ const decodeEventArgs = (args, x) => {
         encoded.push([]);
         break;
       }
+      case "bool": {
+        encoded.push(bytesToBigInt(argv.slice(0, 1)));
+        break;
+      }
       default:
         throw new Error(`Unknown type: ${type}`);
     }
