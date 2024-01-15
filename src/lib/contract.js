@@ -506,7 +506,7 @@ export default class CONTRACT {
             fee: 1000,
           },
           from: this.sender,
-          to: this.contractId,
+          to: algosdk.getApplicationAddress(this.contractId),
           amount,
           assetIndex: token,
         });
@@ -580,7 +580,7 @@ export default class CONTRACT {
             fee: 1000,
           },
           from: this.sender,
-          to: this.contractId,
+          to: algosdk.getApplicationAddress(this.contractId),
           amount,
           assetIndex: token,
         });
@@ -636,7 +636,8 @@ export default class CONTRACT {
       if (response.txnGroups[0].failureMessage) {
         throw response.txnGroups[0].failureMessage;
       }
-      const rlog = response.txnGroups[0].txnResults[1].txnResult.logs.pop();
+      const index = 1 + this.assetTransfers.length;
+      const rlog = response.txnGroups[0].txnResults[index].txnResult.logs.pop();
       const rlog_ui = Uint8Array.from(Buffer.from(rlog, "base64"));
       const res_ui = rlog_ui.slice(4);
 
