@@ -316,6 +316,7 @@ export default class CONTRACT {
     this.sk = acc?.sk;
     this.simulate = simulate;
     this.paymentAmount = 0;
+    this.assetTransfers = [];
     this.fee = 1000;
     this.simulationResultHandler = this.decodeSimulationResponse;
     this.sender = acc?.addr ?? oneAddress;
@@ -370,6 +371,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setAssetTransfers(assetTransfers) {
+    this.assetTransfers = assetTransfers;
   }
 
   setPaymentAmount(amount) {
@@ -442,12 +447,27 @@ export default class CONTRACT {
 
       const apps = [];
       const boxes = [];
+      const assets = [];
+
       if (sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
         boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
       }
-      if (sRes.txnGroups[0]?.txnResults[1]?.unnamedResourcesAccessed?.apps) {
+
+      const index = 1 + this.assetTransfers.length;
+
+      if (
+        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.apps
+      ) {
         apps.push(
-          ...sRes.txnGroups[0].txnResults[1].unnamedResourcesAccessed.apps
+          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed.apps
+        );
+      }
+
+      if (
+        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.assets
+      ) {
+        assets.push(
+          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed.assets
         );
       }
 
@@ -462,22 +482,6 @@ export default class CONTRACT {
 
       const txns = [];
 
-      // Create the application call transaction object
-      const txn2 = algosdk.makeApplicationCallTxnFromObject({
-        suggestedParams: {
-          ...params,
-          flatFee: true,
-          fee: this.fee,
-        },
-        from: this.sender,
-        appIndex: this.contractId,
-        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-        boxes: boxes?.map((box) => ({
-          appIndex: box.app,
-          name: box.name,
-        })),
-        foreignApps: apps,
-      });
       if (this.paymentAmount > 0) {
         const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
           this.sender,
@@ -494,7 +498,39 @@ export default class CONTRACT {
         txns.push(txn1);
       }
 
-      txns.push(txn2);
+      this.assetTransfers.forEach(([amount, token]) => {
+        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: this.contractId,
+          amount,
+          assetIndex: token,
+        });
+        txns.push(txn);
+      });
+
+      // Create the application call transaction object
+      const txnn = algosdk.makeApplicationCallTxnFromObject({
+        suggestedParams: {
+          ...params,
+          flatFee: true,
+          fee: this.fee,
+        },
+        from: this.sender,
+        appIndex: this.contractId,
+        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
+        boxes: boxes?.map((box) => ({
+          appIndex: box.app,
+          name: box.name,
+        })),
+        foreignApps: apps,
+        foreignAssets: assets,
+      });
+      txns.push(txnn);
 
       const txngroup = algosdk.assignGroupID(txns);
 
@@ -520,17 +556,8 @@ export default class CONTRACT {
         return abiMethod.args[index].type.encode(arg);
       });
 
-      // Create the application call transaction object
-      const txn2 = algosdk.makeApplicationCallTxnFromObject({
-        suggestedParams: {
-          ...params,
-          flatFee: true,
-          fee: this.fee,
-        },
-        from: this.sender,
-        appIndex: this.contractId,
-        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-      });
+      const txns = [];
+
       const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
         this.sender,
         algosdk.getApplicationAddress(this.contractId),
@@ -543,8 +570,35 @@ export default class CONTRACT {
           fee: 1000,
         }
       );
+      txns.push(txn1);
 
-      const txns = [txn1, txn2];
+      this.assetTransfers.forEach(([amount, token]) => {
+        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: this.contractId,
+          amount,
+          assetIndex: token,
+        });
+        txns.push(txn);
+      });
+
+      // Create the application call transaction object
+      const txnn = algosdk.makeApplicationCallTxnFromObject({
+        suggestedParams: {
+          ...params,
+          flatFee: true,
+          fee: this.fee,
+        },
+        from: this.sender,
+        appIndex: this.contractId,
+        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
+      });
+      txns.push(txnn);
 
       const txngroup = algosdk.assignGroupID(txns);
       // Sign the transaction
