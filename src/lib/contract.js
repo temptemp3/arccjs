@@ -170,6 +170,21 @@ const decodeEventArgs = (args, x) => {
         encoded.push(bytesToBigInt(argv.slice(0, 1)));
         break;
       }
+      case "(byte,byte[40])": {
+        const a = argv.slice(index, index + 1).toString("hex");
+        index += 1;
+        if (a === "00") {
+          const b = bytesToBigInt(argv.slice(index, index + 8));
+          encoded.push([a, b]);
+        } else {
+          const b = argv.slice(index, index + 8).toString("hex");
+          const c = argv.slice(index + 8, index + 42).toString("hex");
+          encoded.push([a, b, c]);
+        }
+        index += 40;
+        break;
+      }
+
       default:
         throw new Error(`Unknown type: ${type}`);
     }
