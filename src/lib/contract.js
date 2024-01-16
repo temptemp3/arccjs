@@ -533,7 +533,7 @@ export default class CONTRACT {
       }
 
       this.transfers.forEach(([amount, addr]) => {
-        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
           suggestedParams: {
             ...params,
             flatFee: true,
@@ -620,6 +620,20 @@ export default class CONTRACT {
         }
       );
       txns.push(txn1);
+
+      this.transfers.forEach(([amount, addr]) => {
+        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: addr,
+          amount,
+        });
+        txns.push(txn);
+      });
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
