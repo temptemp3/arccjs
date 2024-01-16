@@ -335,6 +335,7 @@ export default class CONTRACT {
     this.sk = acc?.sk;
     this.simulate = simulate;
     this.paymentAmount = 0;
+    this.transfers = [];
     this.assetTransfers = [];
     this.fee = 1000;
     this.simulationResultHandler = this.decodeSimulationResponse;
@@ -390,6 +391,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setTransfers(transfers) {
+    this.transfers = transfers;
   }
 
   setAssetTransfers(assetTransfers) {
@@ -473,7 +478,7 @@ export default class CONTRACT {
         boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
       }
 
-      const index = 1 + this.assetTransfers.length;
+      const index = 1 + this.assetTransfers.length + this.transfers.length;
 
       if (
         sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.apps
@@ -526,6 +531,20 @@ export default class CONTRACT {
         );
         txns.push(txn1);
       }
+
+      this.transfers.forEach(([amount, addr]) => {
+        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: addr,
+          amount,
+        });
+        txns.push(txn);
+      });
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -666,7 +685,7 @@ export default class CONTRACT {
       if (response.txnGroups[0].failureMessage) {
         throw response.txnGroups[0].failureMessage;
       }
-      const index = 1 + this.assetTransfers.length;
+      const index = 1 + this.assetTransfers.length + this.transfers.length;
       const rlog = response.txnGroups[0].txnResults[index].txnResult.logs.pop();
       const rlog_ui = Uint8Array.from(Buffer.from(rlog, "base64"));
       const res_ui = rlog_ui.slice(4);
