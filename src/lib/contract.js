@@ -467,6 +467,7 @@ export default class CONTRACT {
       const apps = [];
       const boxes = [];
       const assets = [];
+      const accounts = [];
 
       if (sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
         boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
@@ -487,6 +488,15 @@ export default class CONTRACT {
       ) {
         assets.push(
           ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed.assets
+        );
+      }
+
+      if (
+        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.accounts
+      ) {
+        accounts.push(
+          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed
+            .accounts
         );
       }
 
@@ -548,6 +558,7 @@ export default class CONTRACT {
         })),
         foreignApps: apps,
         foreignAssets: assets,
+        accounts: accounts,
       });
       txns.push(txnn);
 
