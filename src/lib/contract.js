@@ -337,6 +337,7 @@ export default class CONTRACT {
     this.paymentAmount = 0;
     this.transfers = [];
     this.assetTransfers = [];
+    this.accounts = [];
     this.fee = 1000;
     this.simulationResultHandler = this.decodeSimulationResponse;
     this.sender = acc?.addr ?? oneAddress;
@@ -391,6 +392,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setAccounts(accounts) {
+    this.accounts = accounts;
   }
 
   setTransfers(transfers) {
@@ -472,7 +477,7 @@ export default class CONTRACT {
       const apps = [];
       const boxes = [];
       const assets = [];
-      const accounts = [];
+      const accounts = [...this.accounts];
 
       if (sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
         boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
