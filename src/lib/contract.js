@@ -292,6 +292,7 @@ const getEventsByNames = async (ci, names, query) => {
         )
         .flat(),
     ]);
+    events.sort((a, b) => a[1] - b[1]); // sort by round
     return {
       name,
       signature,
