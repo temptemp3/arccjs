@@ -713,14 +713,14 @@ export default class CONTRACT {
       // Decode the response based on the methodSpec
       let result;
       if (abiMethod.returns.type == "void") {
-        result = null;1
-      1} 
+        result = null;
+      }
       // decode method return type of bool
       else if (abiMethod.returns.type == "bool") {
         // HACK: Hacking this because some early arc72 forgot to cast to bool
         if (res_ui.length === 8) {
           const r = res_ui.slice(-1);
-          switch (r) {
+          switch (r[0]) {
             case 0:
               result = abiMethod.returns.type.decode(
                 new Uint8Array(Buffer.from([0]))
