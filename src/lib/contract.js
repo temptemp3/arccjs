@@ -711,11 +711,33 @@ export default class CONTRACT {
       const res_ui = rlog_ui.slice(4);
 
       // Decode the response based on the methodSpec
-      //HACK: Hacking this because the decode function doesn't work on bytes
       let result;
       if (abiMethod.returns.type == "void") {
-        result = null;
-      } else if (abiMethod.returns.type.childType == "byte") {
+        result = null;1
+      1} 
+      // decode method return type of bool
+      else if (abiMethod.returns.type == "bool") {
+        // HACK: Hacking this because some early arc72 forgot to cast to bool
+        if (res_ui.length === 8) {
+          const r = res_ui.slice(-1);
+          switch (r) {
+            case 0:
+              result = abiMethod.returns.type.decode(
+                new Uint8Array(Buffer.from([0]))
+              );
+              break;
+            case 1:
+              result = abiMethod.returns.type.decode(
+                new Uint8Array(Buffer.from([128]))
+              );
+              break;
+          }
+        } else {
+          result = abiMethod.returns.type.decode(res_ui);
+        }
+      }
+      //HACK: Hacking this because the decode function doesn't work on bytes
+      else if (abiMethod.returns.type.childType == "byte") {
         result = new TextDecoder().decode(res_ui);
       } else {
         result = abiMethod.returns.type.decode(res_ui);

@@ -1481,3 +1481,7 @@ it("getEvents({minRound:2})", () => {
     ]);
   })();
 });
+// TODO: decode method return type of bool with res_ui [0] is false
+// TODO: decode method return type of bool with res_ui [128] is true 
+// TODO: decode method return type of bool with res_ui [0,0,0,0,0,0,0,0] is false
+// TODO: decode method return type of bool with res_ui [0,0,0,0,0,0,0,1] is true
