@@ -326,7 +326,8 @@ export default class CONTRACT {
     spec,
     acc,
     simulate = true,
-    waitForConfirmation = false
+    waitForConfirmation = false,
+    objectOnly = false
   ) {
     this.contractId = contractId;
     this.algodClient = algodClient;
@@ -343,6 +344,7 @@ export default class CONTRACT {
     this.simulationResultHandler = this.decodeSimulationResponse;
     this.sender = acc?.addr ?? oneAddress;
     this.waitForConfirmation = waitForConfirmation;
+    this.extraTxns = [];
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -360,6 +362,10 @@ export default class CONTRACT {
           // If the method is readonly, we can just simulate it
           return await this.createAndSimulateTxn(abiMethod, args);
         } else {
+          const obj = this.buildAppCallTxnObject(abiMethod, args);
+          if (this.objectOnly) {
+            return { obj };
+          }
           if (simulate) {
             const sim = await this.createAndSimulateTxn(abiMethod, args);
             if (sim.success) {
@@ -379,6 +385,10 @@ export default class CONTRACT {
     }
   }
 
+  getExtraTxns() {
+    return this.extraTxns;
+  }
+
   getContractId() {
     return this.contractId;
   }
@@ -393,6 +403,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setExtraTxns(extraTxns) {
+    this.extraTxns = extraTxns;
   }
 
   setAccounts(accounts) {
@@ -469,47 +483,22 @@ export default class CONTRACT {
     }
   }
 
+  createAppCallTxnObject(abiMethod, args) {
+    const appArgs = args.map((arg, index) => {
+      return abiMethod.args[index].type.encode(arg);
+    });
+    return {
+      from: this.sender,
+      appIndex: this.contractId,
+      appArgs: [abiMethod.getSelector(), ...appArgs],
+    };
+  }
+
   async createUtxns(abiMethod, args) {
     try {
       const sRes = await this.simulateTxn(abiMethod, args);
 
       if (!sRes) return;
-
-      const apps = [];
-      const boxes = [];
-      const assets = [];
-      const accounts = [...this.accounts];
-
-      if (sRes.txnGroups[0]?.unnamedResourcesAccessed?.boxes) {
-        boxes.push(...sRes.txnGroups[0].unnamedResourcesAccessed.boxes);
-      }
-
-      const index = 1 + this.assetTransfers.length + this.transfers.length;
-
-      if (
-        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.apps
-      ) {
-        apps.push(
-          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed.apps
-        );
-      }
-
-      if (
-        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.assets
-      ) {
-        assets.push(
-          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed.assets
-        );
-      }
-
-      if (
-        sRes.txnGroups[0]?.txnResults[index]?.unnamedResourcesAccessed?.accounts
-      ) {
-        accounts.push(
-          ...sRes.txnGroups[0].txnResults[index].unnamedResourcesAccessed
-            .accounts
-        );
-      }
 
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
@@ -567,25 +556,90 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
+      const { boxes } = sRes.txnGroups[0].unnamedResourcesAccessed;
+
+      const appCallTxns = [];
+
       // Create the application call transaction object
-      const txnn = algosdk.makeApplicationCallTxnFromObject({
-        suggestedParams: {
-          ...params,
-          flatFee: true,
-          fee: this.fee,
-        },
-        from: this.sender,
-        appIndex: this.contractId,
-        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-        boxes: boxes?.map((box) => ({
-          appIndex: box.app,
-          name: box.name,
-        })),
-        foreignApps: apps,
-        foreignAssets: assets,
-        accounts: accounts,
-      });
-      txns.push(txnn);
+
+      if (abiMethod.name !== "custom") {
+        appCallTxns.push({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: this.fee,
+          },
+          from: this.sender,
+          appIndex: this.contractId,
+          appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
+        });
+      }
+
+      if (this.extraTxns.length > 0) {
+        appCallTxns.push(
+          ...this.extraTxns.map((txn) => ({
+            ...txn,
+            suggestedParams: {
+              ...params,
+              flatFee: true,
+              fee: this.fee,
+            },
+          }))
+        );
+      }
+
+      txns.push(
+        ...appCallTxns.map((appCallTxn, i) =>
+          algosdk.makeApplicationCallTxnFromObject(
+            ((txn) => {
+              const accounts = [];
+              const assets = [];
+              const apps = [];
+              const boxes =
+                sRes?.txnGroups[0]?.unnamedResourcesAccessed?.boxes
+                  ?.filter((x) => [txn.appIndex].includes(x.app))
+                  ?.map((x) => ({
+                    appIndex: x.app,
+                    name: x.name,
+                  })) ?? [];
+              if (sRes.txnGroups[0].txnResults[i].unnamedResourcesAccessed) {
+                const {
+                  apps: innerApps,
+                  accounts: innerAccounts,
+                  boxes: innerBoxes,
+                  assets: innerAssets,
+                } = sRes.txnGroups[0].txnResults[i].unnamedResourcesAccessed;
+                if (innerBoxes && innerBoxes.length > 0) {
+                  innerBoxes.forEach((x) => {
+                    boxes.push({ name: x.name, appIndex: x.app });
+                  });
+                }
+                if (innerAccounts && innerAccounts.length > 0) {
+                  innerAccounts.forEach((x) => {
+                    accounts.push(x);
+                  });
+                }
+                if(innerApps && innerApps.length > 0) {
+                innerApps.forEach((x) => {
+                  apps.push(x);
+                });
+              }
+              if(innerAssets && innerAssets.length > 0) {
+                innerAssets.forEach((x) => {
+                  assets.push(x);
+                });
+              }
+              return {
+                ...txn,
+                boxes,
+                foreignApps: apps,
+                accounts,
+                foreignAssets: assets,
+              };
+            })(appCallTxn)
+          )
+        )
+      );
 
       const txngroup = algosdk.assignGroupID(txns);
 
@@ -656,18 +710,39 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
-      // Create the application call transaction object
-      const txnn = algosdk.makeApplicationCallTxnFromObject({
-        suggestedParams: {
-          ...params,
-          flatFee: true,
-          fee: this.fee,
-        },
-        from: this.sender,
-        appIndex: this.contractId,
-        appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-      });
-      txns.push(txnn);
+      const appCallTxns = [];
+
+      if (abiMethod.name !== "custom") {
+        appCallTxns.push({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: this.fee,
+          },
+          from: this.sender,
+          appIndex: this.contractId,
+          appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
+        });
+      }
+
+      if (this.extraTxns.length > 0) {
+        appCallTxns.push(
+          ...this.extraTxns.map((txn) => ({
+            ...txn,
+            suggestedParams: {
+              ...params,
+              flatFee: true,
+              fee: this.fee,
+            },
+          }))
+        );
+      }
+
+      txns.push(
+        ...appCallTxns.map((appCallTxn, i) =>
+          algosdk.makeApplicationCallTxnFromObject(appCallTxn)
+        )
+      );
 
       const txngroup = algosdk.assignGroupID(txns);
       // Sign the transaction
