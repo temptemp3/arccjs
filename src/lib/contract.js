@@ -345,6 +345,7 @@ export default class CONTRACT {
     this.sender = acc?.addr ?? oneAddress;
     this.waitForConfirmation = waitForConfirmation;
     this.extraTxns = [];
+    this.objectOnly = objectOnly;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -564,11 +565,6 @@ export default class CONTRACT {
 
       if (abiMethod.name !== "custom") {
         appCallTxns.push({
-          suggestedParams: {
-            ...params,
-            flatFee: true,
-            fee: this.fee,
-          },
           from: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
@@ -629,14 +625,14 @@ export default class CONTRACT {
                     assets.push(x);
                   });
                 }
-                return {
-                  ...txn,
-                  boxes,
-                  foreignApps: apps,
-                  accounts,
-                  foreignAssets: assets,
-                };
               }
+              return {
+                ...txn,
+                boxes,
+                foreignApps: apps,
+                accounts,
+                foreignAssets: assets,
+              };
             })(appCallTxn)
           )
         )
