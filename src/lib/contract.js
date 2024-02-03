@@ -619,23 +619,24 @@ export default class CONTRACT {
                     accounts.push(x);
                   });
                 }
-                if(innerApps && innerApps.length > 0) {
-                innerApps.forEach((x) => {
-                  apps.push(x);
-                });
+                if (innerApps && innerApps.length > 0) {
+                  innerApps.forEach((x) => {
+                    apps.push(x);
+                  });
+                }
+                if (innerAssets && innerAssets.length > 0) {
+                  innerAssets.forEach((x) => {
+                    assets.push(x);
+                  });
+                }
+                return {
+                  ...txn,
+                  boxes,
+                  foreignApps: apps,
+                  accounts,
+                  foreignAssets: assets,
+                };
               }
-              if(innerAssets && innerAssets.length > 0) {
-                innerAssets.forEach((x) => {
-                  assets.push(x);
-                });
-              }
-              return {
-                ...txn,
-                boxes,
-                foreignApps: apps,
-                accounts,
-                foreignAssets: assets,
-              };
             })(appCallTxn)
           )
         )
