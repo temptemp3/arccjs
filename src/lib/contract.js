@@ -362,7 +362,7 @@ export default class CONTRACT {
           // If the method is readonly, we can just simulate it
           return await this.createAndSimulateTxn(abiMethod, args);
         } else {
-          const obj = this.buildAppCallTxnObject(abiMethod, args);
+          const obj = this.createAppCallTxnObject(abiMethod, args);
           if (this.objectOnly) {
             return { obj };
           }
