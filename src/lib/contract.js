@@ -557,14 +557,17 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
-      const { boxes } = sRes.txnGroups[0].unnamedResourcesAccessed;
-
       const appCallTxns = [];
 
       // Create the application call transaction object
 
       if (abiMethod.name !== "custom") {
         appCallTxns.push({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: this.fee,
+          },
           from: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
