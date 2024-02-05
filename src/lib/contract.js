@@ -434,6 +434,10 @@ export default class CONTRACT {
     this.fee = fee;
   }
 
+  getAccounts() {
+    return this.accounts;
+  }
+
   getEventByName(event) {
     return getEventByName(this.spec.events, event);
   }
@@ -587,55 +591,65 @@ export default class CONTRACT {
         );
       }
 
+      // Add the application call transactions to the list of transactions
+      // with unnamed resources accessed added
+      const offset = this.paymentAmount > 0 ? 1 : 0; // offset for payment transaction
+      const index = offset + this.assetTransfers.length + this.transfers.length; // index for appCallTxns
+      // unnamedResourcesAccessed fallback
+      const ura = {
+        accounts: [],
+        appLocals: [],
+        apps: [],
+        assetHoldings: [],
+        assets: [],
+        boxes: [],
+        extraBoxRefs: [],
+      };
+      // group unnamedResourcesAccessed
+      const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
       txns.push(
-        ...appCallTxns.map((appCallTxn, i) =>
+        ...appCallTxns.map((appCallTxn, j) =>
           algosdk.makeApplicationCallTxnFromObject(
             ((txn) => {
-              const accounts = [];
-              const assets = [];
-              const apps = [];
-              const boxes =
-                sRes?.txnGroups[0]?.unnamedResourcesAccessed?.boxes
-                  ?.filter((x) => [txn.appIndex].includes(x.app))
-                  ?.map((x) => ({
-                    appIndex: x.app,
-                    name: x.name,
-                  })) ?? [];
-              if (sRes.txnGroups[0].txnResults[i].unnamedResourcesAccessed) {
-                const {
-                  apps: innerApps,
-                  accounts: innerAccounts,
-                  boxes: innerBoxes,
-                  assets: innerAssets,
-                } = sRes.txnGroups[0].txnResults[i].unnamedResourcesAccessed;
-                if (innerBoxes && innerBoxes.length > 0) {
-                  innerBoxes.forEach((x) => {
-                    boxes.push({ name: x.name, appIndex: x.app });
-                  });
-                }
-                if (innerAccounts && innerAccounts.length > 0) {
-                  innerAccounts.forEach((x) => {
-                    accounts.push(x);
-                  });
-                }
-                if (innerApps && innerApps.length > 0) {
-                  innerApps.forEach((x) => {
-                    apps.push(x);
-                  });
-                }
-                if (innerAssets && innerAssets.length > 0) {
-                  innerAssets.forEach((x) => {
-                    assets.push(x);
-                  });
-                }
-              }
-              return {
-                ...txn,
-                boxes,
-                foreignApps: apps,
-                accounts,
-                foreignAssets: assets,
+              const i = j + index;
+              // transaction unnamedResourcesAccessed raw
+              const turs =
+                sRes.txnGroups[0]?.txnResults[i]?.unnamedResourcesAccessed ??
+                ura;
+              // transaction apps
+              const tApps = Array.from(
+                new Set([
+                  txn.appIndex,
+                  ...(gurs?.apps ?? []),
+                  ...(turs?.apps ?? []),
+                ])
+              );
+              // transaction boxes
+              const tBoxes = [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
+                .filter((x) => tApps.includes(x.app))
+                .map((x) => ({ appIndex: x.app, name: x.name }));
+              // transaction accounts
+              const tAccounts = Array.from(
+                new Set([...(gurs?.accounts ?? []), ...(turs?.accounts ?? [])])
+              );
+              // transaction assets
+              const tAssets = Array.from(
+                new Set([...(gurs?.assets ?? []), ...(turs?.assets ?? [])])
+              );
+              // transaction unnamedResourcesAccessed prepared
+              const unnamedResourcesAccessed = {
+                accounts: tAccounts,
+                boxes: tBoxes,
+                accounts: tAccounts,
+                foreignApps: tApps,
+                foreignAssets: tAssets,
               };
+              // final transaction
+              const ftxn = {
+                ...txn,
+                ...unnamedResourcesAccessed,
+              };
+              return ftxn;
             })(appCallTxn)
           )
         )
