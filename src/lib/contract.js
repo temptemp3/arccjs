@@ -194,6 +194,14 @@ const decodeEventArgs = (args, x) => {
         encoded.push([a, [b, c], bytesToBigInt(argv.slice(index, index + 8))]);
         break;
       }
+      case "(uint64,uint64)": {
+        const a = bytesToBigInt(argv.slice(index, index + 8));
+        index += 8;
+        const b = bytesToBigInt(argv.slice(index, index + 8));
+        index += 8;
+        encoded.push([a, b]);
+        break;
+      }
       default:
         throw new Error(`Unknown type: ${type}`);
     }
