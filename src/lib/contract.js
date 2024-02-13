@@ -668,6 +668,15 @@ export default class CONTRACT {
     }
   }
 
+  getRIndex() {
+    const offsets = [
+      this.paymentAmount > 0 ? 1 : 0,
+      this.assetTransfers.length,
+      this.transfers.length,
+    ];
+    return offsets.reduce((a, b) => a + b, 0);
+  }
+
   async simulateTxn(abiMethod, args) {
     try {
       // Get the suggested transaction parameters
@@ -681,19 +690,22 @@ export default class CONTRACT {
 
       const txns = [];
 
-      const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
-        this.sender,
-        algosdk.getApplicationAddress(this.contractId),
-        this.paymentAmount,
-        undefined,
-        undefined,
-        {
-          ...params,
-          flatFee: true,
-          fee: 1000,
-        }
-      );
-      txns.push(txn1);
+      if (this.paymentAmount > 0) {
+        const txn1 = txns.push(
+          algosdk.makePaymentTxnWithSuggestedParams(
+            this.sender,
+            algosdk.getApplicationAddress(this.contractId),
+            this.paymentAmount,
+            undefined,
+            undefined,
+            {
+              ...params,
+              flatFee: true,
+              fee: 1000,
+            }
+          )
+        );
+      }
 
       this.transfers.forEach(([amount, addr]) => {
         const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
@@ -794,7 +806,7 @@ export default class CONTRACT {
       if (response.txnGroups[0].failureMessage) {
         throw response.txnGroups[0].failureMessage;
       }
-      const index = 1 + this.assetTransfers.length + this.transfers.length;
+      const index = this.getRIndex();
       const rlog = response.txnGroups[0].txnResults[index].txnResult.logs.pop();
       const rlog_ui = Uint8Array.from(Buffer.from(rlog, "base64"));
       const res_ui = rlog_ui.slice(4);
