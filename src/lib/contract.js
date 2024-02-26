@@ -363,6 +363,7 @@ export default class CONTRACT {
     this.waitForConfirmation = waitForConfirmation;
     this.extraTxns = [];
     this.objectOnly = objectOnly;
+    this.enableGroupResourceSharing = false;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -403,6 +404,10 @@ export default class CONTRACT {
     }
   }
 
+  getEnableGroupResourceSharing() {
+    return this.enableGroupResourceSharing;
+  }
+
   getExtraTxns() {
     return this.extraTxns;
   }
@@ -421,6 +426,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setEnableGroupResourceSharing(enableGroupResourceSharing) {
+    this.enableGroupResourceSharing = enableGroupResourceSharing;
   }
 
   setExtraTxns(extraTxns) {
@@ -533,6 +542,77 @@ export default class CONTRACT {
 
       const txns = [];
 
+      // build group resource sharing txns in case of extra txns (only boxes)
+      let grsOffset = 0;
+      if (this.enableGroupResourceSharing) {
+        const ura = {
+          accounts: [],
+          appLocals: [],
+          apps: [],
+          assetHoldings: [],
+          assets: [],
+          boxes: [],
+          extraBoxRefs: [],
+        };
+        const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
+        const boxApps = gurs.boxes.map((x) => x.app);
+        const boxNames = new Map();
+        for (const box of gurs.boxes) {
+          if (!boxNames.has(box.app)) {
+            boxNames.set(box.app, []);
+          }
+          boxNames.get(box.app).push(box.name);
+        }
+        console.log("boxApps:", boxApps);
+        console.log("boxNames:", boxNames);
+        grsOffset += boxApps.length;
+        for (const app of boxNames.keys()) {
+          // split box names into groups of 4
+          const boxNamesGroups = [];
+          for (let i = 0; i < boxNames.get(app).length; i += 4) {
+            boxNamesGroups.push(boxNames.get(app).slice(i, i + 4));
+          }
+          for (const boxNamesGroup of boxNamesGroups) {
+            const txn = algosdk.makeApplicationCallTxnFromObject({
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: this.sender,
+              appIndex: this.contractId,
+              appArgs: [new Uint8Array(Buffer.from("e33d8052", "hex"))],
+              accounts: [...this.getAccounts()],
+              foreignApps: [app],
+              boxes: boxNamesGroup.map((x) => ({ appIndex: app, name: x })), //boxNames.get(app).map((x) => ({appIndex: app, name: x}))
+            });
+            txns.push(txn);
+          }
+        }
+        //   if(gurs.accounts > 0) {
+        //     // split accounts into groups of 4
+        //     const accounts = gurs.accounts;
+        //     const accountGroups = [];
+        //     for (let i = 0; i < accounts.length; i += 4) {
+        //       accountGroups.push(accounts.slice(i, i + 4));
+        //     }
+        //     for(const group of accountGroups) {
+        //       const txn = algosdk.makeApplicationCallTxnFromObject({
+        //         suggestedParams: {
+        //           ...params,
+        //           flatFee: true,
+        //           fee: 1000,
+        //         },
+        //         from: this.sender,
+        //         appIndex: this.contractId,
+        //         appArgs: [new Uint8Array(Buffer.from("e33d8052", "hex"))],
+        //         accounts: [...group],
+        //       });
+        //       txns.push(txn);
+        //     }
+        //   }
+      }
+
       if (this.paymentAmount > 0) {
         const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
           this.sender,
@@ -611,7 +691,8 @@ export default class CONTRACT {
       // Add the application call transactions to the list of transactions
       // with unnamed resources accessed added
       const offset = this.paymentAmount > 0 ? 1 : 0; // offset for payment transaction
-      const index = offset + this.assetTransfers.length + this.transfers.length; // index for appCallTxns
+      const index =
+        grsOffset + offset + this.assetTransfers.length + this.transfers.length; // index for appCallTxns
       // unnamedResourcesAccessed fallback
       const ura = {
         accounts: [],
@@ -642,9 +723,11 @@ export default class CONTRACT {
                 ])
               );
               // transaction boxes
-              const tBoxes = [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                .filter((x) => tApps.includes(x.app))
-                .map((x) => ({ appIndex: x.app, name: x.name }));
+              const tBoxes = this.enableGroupResourceSharing
+                ? []
+                : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
+                    .filter((x) => tApps.includes(x.app))
+                    .map((x) => ({ appIndex: x.app, name: x.name }));
               // transaction accounts
               const tAccounts = Array.from(
                 new Set([...(gurs?.accounts ?? []), ...(turs?.accounts ?? [])])
