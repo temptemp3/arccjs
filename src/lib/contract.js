@@ -4,6 +4,7 @@ import { Buffer } from "buffer";
 import sha512 from "js-sha512";
 
 const ctcInfoBc200 = 29096344; // beacon200
+const selNop = "58759fa2"; // nop()void"
 
 async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
@@ -180,7 +181,7 @@ const decodeEventArgs = (args, x) => {
           encoded.push([a, b]);
         } else {
           const b = argv.slice(index, index + 8).toString("hex");
-          const c = argv.slice(index + 8, index + 42).toString("hex");
+          const c = argv.slice(index + 8, index + 40).toString("hex");
           encoded.push([a, b, c]);
         }
         index += 40;
@@ -367,6 +368,7 @@ export default class CONTRACT {
     this.objectOnly = objectOnly;
     this.enableGroupResourceSharing = false;
     this.beaconId = ctcInfoBc200;
+    this.beaconSel = selNop;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -411,6 +413,10 @@ export default class CONTRACT {
     return this.beaconId;
   }
 
+  getBeaconSelector() {
+    return this.beaconSel;
+  }
+
   getEnableGroupResourceSharing() {
     return this.enableGroupResourceSharing;
   }
@@ -433,6 +439,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setBeaconSelector(beaconSel) {
+    this.beaconSel = beaconSel;
   }
 
   setEnableGroupResourceSharing(enableGroupResourceSharing) {
@@ -555,7 +565,7 @@ export default class CONTRACT {
 
       // build group resource sharing txns in case of extra txns (only boxes)
       let grsOffset = 0;
-      if (this.enableGroupResourceSharing) {
+      if (this.enableGroupResourceSharing && this.extraTxns.length > 0) {
         const ura = {
           accounts: [],
           appLocals: [],
@@ -590,14 +600,15 @@ export default class CONTRACT {
               },
               from: this.sender,
               appIndex: this.beaconId,
-              appArgs: [new Uint8Array(Buffer.from("58759fa2", "hex"))], // nop()void
+              appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
               accounts: [...this.getAccounts()],
               foreignApps: [app],
-              boxes: boxNamesGroup.map((x) => ({ appIndex: app, name: x })), //boxNames.get(app).map((x) => ({appIndex: app, name: x}))
+              boxes: boxNamesGroup.map((x) => ({ appIndex: app, name: x })),
             });
             txns.push(txn);
           }
         }
+        // accounts
         //   if(gurs.accounts > 0) {
         //     // split accounts into groups of 4
         //     const accounts = gurs.accounts;
@@ -620,6 +631,22 @@ export default class CONTRACT {
         //       txns.push(txn);
         //     }
         //   }
+        // ---------------------------------------
+        // appLocals
+        // sample appLocals:
+        //   {
+        //     account:
+        //       "GWV3Q335A5FLU7OEA7GSIOSCTWSRQ6BH2YARNO56O6TQ3K2MTELFNGBGVY",
+        //     app: 6779767,
+        //     attribute_map: {
+        //       account: "account",
+        //       app: "app",
+        //     },
+        //   },
+        if (gurs.appLocals.length > 0) {
+          // not yet supported
+        }
+        // ---------------------------------------
       }
 
       if (this.paymentAmount > 0) {
