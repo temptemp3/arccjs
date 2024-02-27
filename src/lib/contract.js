@@ -643,9 +643,9 @@ export default class CONTRACT {
         //       app: "app",
         //     },
         //   },
-        if (gurs.appLocals.length > 0) {
-          // not yet supported
-        }
+        //if (gurs.appLocals.length > 0) {
+        // not yet supported
+        //}
         // ---------------------------------------
       }
 
