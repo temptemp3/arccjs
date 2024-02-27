@@ -366,6 +366,7 @@ export default class CONTRACT {
     this.extraTxns = [];
     this.objectOnly = objectOnly;
     this.enableGroupResourceSharing = false;
+    this.beaconId = ctcInfoBc200;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -404,6 +405,10 @@ export default class CONTRACT {
         }
       }.bind(this);
     }
+  }
+
+  getBeaconId() {
+    return this.beaconId;
   }
 
   getEnableGroupResourceSharing() {
@@ -460,6 +465,10 @@ export default class CONTRACT {
 
   setFee(fee) {
     this.fee = fee;
+  }
+
+  setBeaconId(beaconId) {
+    this.beaconId = beaconId;
   }
 
   getAccounts() {
@@ -580,7 +589,7 @@ export default class CONTRACT {
                 fee: 1000,
               },
               from: this.sender,
-              appIndex: ctcInfoBc200,
+              appIndex: this.beaconId,
               appArgs: [new Uint8Array(Buffer.from("58759fa2", "hex"))], // nop()void
               accounts: [...this.getAccounts()],
               foreignApps: [app],
