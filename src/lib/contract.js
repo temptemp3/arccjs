@@ -3,6 +3,8 @@ import { oneAddress } from "../utils/account.js";
 import { Buffer } from "buffer";
 import sha512 from "js-sha512";
 
+const ctcInfoBc200 = 29096344; // beacon200
+
 async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
   let lastRound = status["last-round"];
@@ -563,8 +565,6 @@ export default class CONTRACT {
           }
           boxNames.get(box.app).push(box.name);
         }
-        console.log("boxApps:", boxApps);
-        console.log("boxNames:", boxNames);
         grsOffset += boxApps.length;
         for (const app of boxNames.keys()) {
           // split box names into groups of 4
@@ -580,8 +580,8 @@ export default class CONTRACT {
                 fee: 1000,
               },
               from: this.sender,
-              appIndex: this.contractId,
-              appArgs: [new Uint8Array(Buffer.from("e33d8052", "hex"))],
+              appIndex: ctcInfoBc200,
+              appArgs: [new Uint8Array(Buffer.from("58759fa2", "hex"))], // nop()void
               accounts: [...this.getAccounts()],
               foreignApps: [app],
               boxes: boxNamesGroup.map((x) => ({ appIndex: app, name: x })), //boxNames.get(app).map((x) => ({appIndex: app, name: x}))
