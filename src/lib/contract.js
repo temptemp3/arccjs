@@ -369,6 +369,7 @@ export default class CONTRACT {
     this.enableGroupResourceSharing = false;
     this.beaconId = ctcInfoBc200;
     this.beaconSel = selNop;
+    this.optIns = [];
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -409,6 +410,10 @@ export default class CONTRACT {
     }
   }
 
+  getOptIns() {
+    return this.optIns;
+  }
+
   getBeaconId() {
     return this.beaconId;
   }
@@ -439,6 +444,10 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  setOptins(optIns) {
+    this.optIns = optIns;
   }
 
   setBeaconSelector(beaconSel) {
@@ -790,6 +799,23 @@ export default class CONTRACT {
           )
         )
       );
+
+      if(this.optIns.length > 0) {
+        const optInTxns = this.optIns.map((optIn) => {
+          return algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            suggestedParams: {
+              ...params,
+              flatFee: true,
+              fee: 1000,
+            },
+            from: this.sender,
+            to: this.sender,
+            amount: 0,
+            assetIndex: optIn,
+          });
+        });
+        txns.push(...optInTxns);
+      }
 
       const txngroup = algosdk.assignGroupID(txns);
 
