@@ -8,8 +8,8 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "npm": ">=10.2.0",
-    "node": ">=20.9.0"
+    "npm": ">=10.2.4",
+    "node": ">=18.19.1"
   },
   "jest": {
     "testEnvironment": "jest-environment-node",
