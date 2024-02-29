@@ -1,6 +1,6 @@
 {
   "name": "arccjs",
-  "version": "2.6.6",
+  "version": "2.6.5",
   "main": "index.js",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
@@ -8,8 +8,8 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "npm": ">=10.2.4",
-    "node": ">=18.19.1"
+    "npm": ">=10.2.0",
+    "node": ">=20.9.0"
   },
   "jest": {
     "testEnvironment": "jest-environment-node",
