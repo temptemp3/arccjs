@@ -245,6 +245,7 @@ const getEventsByNames = async (ci, names, query) => {
   const { minRound, maxRound, address, round, txid } = query || {};
   const events = {};
   const txns = [];
+  const logs = [];
   const selectorNameLookup = {};
   const selectorSignatureLookup = {};
   const selectors = names.map((x) => {
@@ -257,6 +258,8 @@ const getEventsByNames = async (ci, names, query) => {
     return selector;
   });
   selectors.forEach((x) => (events[x] = []));
+
+  // get txns
   let next;
   do {
     const itxn = ci.indexerClient
@@ -270,26 +273,77 @@ const getEventsByNames = async (ci, names, query) => {
     if (round) itxn.round(round);
     if (txid) itxn.txid(txid);
     const res = await itxn.do();
-    txns.push(res.transactions);
+    if ("transactions" in res) {
+      txns.push(res.transactions);
+      if (res.transactions.length < 1000) break;
+    }
     next = res["next-token"];
-    if (res.length < 1000) break;
   } while (next);
-  // array of txns
-  const atxns = txns?.flat() || [];
-  // array of innter txns depth 1
-  const btxns =
-    atxns
-      ?.filter((x) => !!x["inner-txns"])
-      ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
-      ?.flat() || [];
-  // array of inner txns depth 2
-  const ctxns =
-    btxns
-      ?.filter((x) => !!x["inner-txns"])
-      ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
-      ?.flat() || [];
 
-  for (const txn of [...atxns, ...btxns, ...ctxns]) {
+  // get logs
+  next = null;
+  do {
+    const ilog = ci.indexerClient
+      .lookupApplicationLogs(ci.contractId)
+      .limit(1000)
+      .nextToken(next);
+    if (minRound) ilog.minRound(minRound);
+    if (maxRound) ilog.maxRound(maxRound);
+    if (address) ilog.address(address);
+    if (round) ilog.round(round);
+    if (txid) ilog.txid(txid);
+    const res = await ilog.do();
+    if ("log-data" in res) {
+      const logData = res["log-data"];
+      logs.push(...logData);
+      if (logData.length < 1000) break;
+    }
+    next = res["next-token"];
+  } while (next);
+
+  const merged = logs
+    .flat()
+    .filter((el) => !!el)
+    .map((el) => {
+      const txn = txns.flat().find((txn) => txn.id === el.txid);
+      return {
+        id: el.txid,
+        logs: el.logs,
+        ["confirmed-round"]: txn["confirmed-round"],
+        ["round-time"]: txn["round-time"],
+      };
+    });
+
+  // ---------------------------------------
+  // // array of txns
+  // const atxns = txns?.flat() || [];
+  // // array of innter txns depth 1
+  // const btxns =
+  //   atxns
+  //     ?.filter((x) => !!x["inner-txns"])
+  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
+  //     ?.flat()
+  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
+
+  // // array of inner txns depth 2
+  // const ctxns =
+  //   btxns
+  //     ?.filter((x) => !!x["inner-txns"])
+  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
+  //     ?.flat()
+  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
+  // // array of inner txns depth 3
+  // const dtxns =
+  //   ctxns
+  //     ?.filter((x) => !!x["inner-txns"])
+  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
+  //     ?.flat()
+  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
+  // ---------------------------------------
+
+  // get events
+  //for (const txn of [...atxns, ...btxns, ...ctxns, ...dtxns]) {
+  for (const txn of merged) {
     const evts = getEvents(txn, selectors);
     for (const [k, v] of Object.entries(evts)) {
       if (!v.length) continue;
@@ -800,7 +854,7 @@ export default class CONTRACT {
         )
       );
 
-      if(this.optIns.length > 0) {
+      if (this.optIns.length > 0) {
         const optInTxns = this.optIns.map((optIn) => {
           return algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
             suggestedParams: {
