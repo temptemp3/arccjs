@@ -244,8 +244,6 @@ const getEvents = (txn, selectors) => {
 const getEventsByNames = async (ci, names, query) => {
   const { minRound, maxRound, address, round, txid } = query || {};
   const events = {};
-  const txns = [];
-  const logs = [];
   const selectorNameLookup = {};
   const selectorSignatureLookup = {};
   const selectors = names.map((x) => {
@@ -259,8 +257,12 @@ const getEventsByNames = async (ci, names, query) => {
   });
   selectors.forEach((x) => (events[x] = []));
 
-  // get txns
   let next;
+
+  // get txns
+
+  const txns = [];
+  next = undefined;
   do {
     const itxn = ci.indexerClient
       .searchForTransactions()
@@ -273,15 +275,17 @@ const getEventsByNames = async (ci, names, query) => {
     if (round) itxn.round(round);
     if (txid) itxn.txid(txid);
     const res = await itxn.do();
-    if ("transactions" in res) {
-      txns.push(res.transactions);
-      if (res.transactions.length < 1000) break;
+    for(const txn of res.transactions) { 
+        txns.push(txn);
     }
     next = res["next-token"];
   } while (next);
 
   // get logs
-  next = null;
+  
+  const logs = []
+  const logS = new Set();
+  next = undefined
   do {
     const ilog = ci.indexerClient
       .lookupApplicationLogs(ci.contractId)
@@ -293,56 +297,45 @@ const getEventsByNames = async (ci, names, query) => {
     if (round) ilog.round(round);
     if (txid) ilog.txid(txid);
     const res = await ilog.do();
-    if ("log-data" in res) {
-      const logData = res["log-data"];
-      logs.push(...logData);
-      if (logData.length < 1000) break;
+    if(next === res["next-token"]) break;
+    const rLogData = res["log-data"];
+    const logData = rLogData?.map((el) => ({
+      applicationId: res["application-id"],
+      round: res["current-round"],
+      txid: el["txid"],
+      logs: el["logs"]
+    })) || [];
+    for(const log of logData) {
+      const key = log.txid+log.logs.join();
+      if(logS.has(key)) continue;
+      const txn = txns.find((x) => x.id === log.txid);
+      if(!txn) {
+        const { transaction: txn } = await ci.indexerClient.lookupTransactionByID(log.txid).do();
+        logs.push({...log, round: txn["confirmed-round"], roundTime: txn["round-time"]});
+      } else {
+        logs.push({...log, round: txn["confirmed-round"], roundTime: txn["round-time"]});
+      }
+      logS.add(key);
     }
     next = res["next-token"];
   } while (next);
 
-  const merged = logs
-    .flat()
-    .filter((el) => !!el)
-    .map((el) => {
-      const txn = txns.flat().find((txn) => txn.id === el.txid);
-      return {
-        id: el.txid,
-        logs: el.logs,
-        ["confirmed-round"]: txn["confirmed-round"],
-        ["round-time"]: txn["round-time"],
-      };
-    });
-
-  // ---------------------------------------
-  // // array of txns
-  // const atxns = txns?.flat() || [];
-  // // array of innter txns depth 1
-  // const btxns =
-  //   atxns
-  //     ?.filter((x) => !!x["inner-txns"])
-  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
-  //     ?.flat()
-  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
-
-  // // array of inner txns depth 2
-  // const ctxns =
-  //   btxns
-  //     ?.filter((x) => !!x["inner-txns"])
-  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
-  //     ?.flat()
-  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
-  // // array of inner txns depth 3
-  // const dtxns =
-  //   ctxns
-  //     ?.filter((x) => !!x["inner-txns"])
-  //     ?.map((x) => x["inner-txns"].map((y) => ({ id: x.id, ...y })))
-  //     ?.flat()
-  //     ?.filter((x) => x["application-id"] === ci.contractId) || [];
-  // ---------------------------------------
+  // merge txns and logs adding round-time and confirmed-round to logdata
+  const merged = []
+  for(const log of logs) {
+    const mergedLog = {
+        applicationId: log.applicationId,
+        id: log.txid,
+        logs: log.logs,
+        ["confirmed-round"]: log.round,
+        ["round-time"]: log.roundTime
+      }
+    merged.push(
+      mergedLog
+    )
+  }
 
   // get events
-  //for (const txn of [...atxns, ...btxns, ...ctxns, ...dtxns]) {
   for (const txn of merged) {
     const evts = getEvents(txn, selectors);
     for (const [k, v] of Object.entries(evts)) {
