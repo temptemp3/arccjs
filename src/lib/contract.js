@@ -242,7 +242,7 @@ const getEvents = (txn, selectors) => {
 };
 
 const getEventsByNames = async (ci, names, query) => {
-  const { minRound, maxRound, address, round, txid } = query || {};
+  const { minRound, maxRound, address, round, txid, sender } = query || {};
   const events = {};
   const selectorNameLookup = {};
   const selectorSignatureLookup = {};
@@ -275,17 +275,17 @@ const getEventsByNames = async (ci, names, query) => {
     if (round) itxn.round(round);
     if (txid) itxn.txid(txid);
     const res = await itxn.do();
-    for(const txn of res.transactions) { 
-        txns.push(txn);
+    for (const txn of res.transactions) {
+      txns.push(txn);
     }
     next = res["next-token"];
   } while (next);
 
   // get logs
-  
-  const logs = []
+
+  const logs = [];
   const logS = new Set();
-  next = undefined
+  next = undefined;
   do {
     const ilog = ci.indexerClient
       .lookupApplicationLogs(ci.contractId)
@@ -293,27 +293,38 @@ const getEventsByNames = async (ci, names, query) => {
       .nextToken(next);
     if (minRound) ilog.minRound(minRound);
     if (maxRound) ilog.maxRound(maxRound);
-    if (address) ilog.address(address);
+    if (sender) ilog.sender(sender);
     if (round) ilog.round(round);
     if (txid) ilog.txid(txid);
     const res = await ilog.do();
-    if(next === res["next-token"]) break;
+    if (next === res["next-token"]) break;
     const rLogData = res["log-data"];
-    const logData = rLogData?.map((el) => ({
-      applicationId: res["application-id"],
-      round: res["current-round"],
-      txid: el["txid"],
-      logs: el["logs"]
-    })) || [];
-    for(const log of logData) {
-      const key = log.txid+log.logs.join();
-      if(logS.has(key)) continue;
+    const logData =
+      rLogData?.map((el) => ({
+        applicationId: res["application-id"],
+        round: res["current-round"],
+        txid: el["txid"],
+        logs: el["logs"],
+      })) || [];
+    for (const log of logData) {
+      const key = log.txid + log.logs.join();
+      if (logS.has(key)) continue;
       const txn = txns.find((x) => x.id === log.txid);
-      if(!txn) {
-        const { transaction: txn } = await ci.indexerClient.lookupTransactionByID(log.txid).do();
-        logs.push({...log, round: txn["confirmed-round"], roundTime: txn["round-time"]});
+      if (!txn) {
+        const { transaction: txn } = await ci.indexerClient
+          .lookupTransactionByID(log.txid)
+          .do();
+        logs.push({
+          ...log,
+          round: txn["confirmed-round"],
+          roundTime: txn["round-time"],
+        });
       } else {
-        logs.push({...log, round: txn["confirmed-round"], roundTime: txn["round-time"]});
+        logs.push({
+          ...log,
+          round: txn["confirmed-round"],
+          roundTime: txn["round-time"],
+        });
       }
       logS.add(key);
     }
@@ -321,18 +332,16 @@ const getEventsByNames = async (ci, names, query) => {
   } while (next);
 
   // merge txns and logs adding round-time and confirmed-round to logdata
-  const merged = []
-  for(const log of logs) {
+  const merged = [];
+  for (const log of logs) {
     const mergedLog = {
-        applicationId: log.applicationId,
-        id: log.txid,
-        logs: log.logs,
-        ["confirmed-round"]: log.round,
-        ["round-time"]: log.roundTime
-      }
-    merged.push(
-      mergedLog
-    )
+      applicationId: log.applicationId,
+      id: log.txid,
+      logs: log.logs,
+      ["confirmed-round"]: log.round,
+      ["round-time"]: log.roundTime,
+    };
+    merged.push(mergedLog);
   }
 
   // get events
@@ -585,7 +594,7 @@ export default class CONTRACT {
         response,
       };
     } catch (error) {
-      console.error("Error in createAndSimulateTxn:", error);
+      //console.error("Error in createAndSimulateTxn:", error);
       //throw error; // Re-throw the error after logging it
       return { success: false, error };
     }
