@@ -56,11 +56,18 @@ const decodeEventArgs = (args, x) => {
         encoded.push(encodeAddress(argv.slice(index, index + 32)));
         index += 32;
         break;
+      case "(uint64)":
+        encoded.push([bytesToBigInt(argv.slice(index, index + 8))]);
+        index += 8;
+        break;
       case "uint64":
         encoded.push(bytesToBigInt(argv.slice(index, index + 8)));
         index += 8;
         break;
       case "(uint256)":
+        encoded.push([bytesToBigInt(argv.slice(index, index + 32))]);
+        index += 32;
+        break;
       case "uint256":
         encoded.push(bytesToBigInt(argv.slice(index, index + 32)));
         index += 32;
