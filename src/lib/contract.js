@@ -401,15 +401,21 @@ const getEventByName = (events, name) => {
   }
   return {
     getSelector: () => getEventSelector(event),
-    next: () => {}, //() => Promise<Event<T>>,
-    nextUpToTime: () => {}, //(t: Time) => Promise<undefined | Event<T>>,
-    nextUpToNow: () => {}, //() => Promise<undefined | Event<T>>,
-    seek: () => {}, //(t: Time) => void,
-    seekNow: () => {}, //() => Promise<void>,
-    lastTime: () => {}, //() => Promise<Time>,
-    monitor: () => {}, //((Event<T>) => void) => Promise<void>,
+    next: () => { }, //() => Promise<Event<T>>,
+    nextUpToTime: () => { }, //(t: Time) => Promise<undefined | Event<T>>,
+    nextUpToNow: () => { }, //() => Promise<undefined | Event<T>>,
+    seek: () => { }, //(t: Time) => void,
+    seekNow: () => { }, //() => Promise<void>,
+    lastTime: () => { }, //() => Promise<Time>,
+    monitor: () => { }, //((Event<T>) => void) => Promise<void>,
   };
 };
+
+// on complete actions
+
+const noOpOC = 0;
+const deleteApplicationOC = 5;
+
 export default class CONTRACT {
   constructor(
     contractId,
@@ -442,6 +448,7 @@ export default class CONTRACT {
     this.beaconId = ctcInfoBc200;
     this.beaconSel = selNop;
     this.optIns = [];
+    this.onComplete = noOpOC;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -516,6 +523,19 @@ export default class CONTRACT {
 
   getSimulate() {
     return this.simulate;
+  }
+
+  getOnComplete() {
+    return this.onComplete;
+  }
+
+  setOnComplete(onComplete) {
+    if ([
+      noOpOC,
+      deleteApplicationOC
+    ].includes(onComplete)) {
+      this.onComplete = onComplete
+    }
   }
 
   setOptins(optIns) {
@@ -843,8 +863,8 @@ export default class CONTRACT {
               const tBoxes = this.enableGroupResourceSharing
                 ? []
                 : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                    .filter((x) => tApps.includes(x.app))
-                    .map((x) => ({ appIndex: x.app, name: x.name }));
+                  .filter((x) => tApps.includes(x.app))
+                  .map((x) => ({ appIndex: x.app, name: x.name }));
               // transaction accounts
               const tAccounts = Array.from(
                 new Set([...(gurs?.accounts ?? []), ...(turs?.accounts ?? [])])
@@ -865,6 +885,7 @@ export default class CONTRACT {
               const ftxn = {
                 ...txn,
                 ...unnamedResourcesAccessed,
+                onComplete: this.getOnComplete()
               };
               return ftxn;
             })(appCallTxn)
@@ -982,6 +1003,7 @@ export default class CONTRACT {
           from: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
+          onComplete: this.getOnComplete()
         });
       }
 
@@ -1040,18 +1062,27 @@ export default class CONTRACT {
       if (response.txnGroups[0].failureMessage) {
         throw response.txnGroups[0].failureMessage;
       }
+      // -----------------------------------------
+      // return type void handled before decoding to workaround 
+      // difference in compiler ouput
+      //   puya genearted teal programs will fail to pop logs
+      //   reachc generated teal programs will not produce an error
+      // -----------------------------------------
+      if (abiMethod.returns.type == "void") {
+        return null;
+      }
+      // -----------------------------------------
       const index = this.getRIndex();
       const rlog = response.txnGroups[0].txnResults[index].txnResult.logs.pop();
       const rlog_ui = Uint8Array.from(Buffer.from(rlog, "base64"));
       const res_ui = rlog_ui.slice(4);
-
+      // -----------------------------------------
       // Decode the response based on the methodSpec
       let result;
-      if (abiMethod.returns.type == "void") {
-        result = null;
-      }
-      // decode method return type of bool
-      else if (abiMethod.returns.type == "bool") {
+      // -----------------------------------------
+      // special handling for decode method return type of bool
+      // -----------------------------------------
+      if (abiMethod.returns.type == "bool") {
         // HACK: Hacking this because some early arc72 forgot to cast to bool
         if (res_ui.length === 8) {
           const r = res_ui.slice(-1);
@@ -1071,10 +1102,14 @@ export default class CONTRACT {
           result = abiMethod.returns.type.decode(res_ui);
         }
       }
+      // -----------------------------------------
       //HACK: Hacking this because the decode function doesn't work on bytes
+      // -----------------------------------------
       else if (abiMethod.returns.type.childType == "byte") {
         result = new TextDecoder().decode(res_ui);
-      } else {
+      }
+      // -----------------------------------------
+      else {
         result = abiMethod.returns.type.decode(res_ui);
       }
 
