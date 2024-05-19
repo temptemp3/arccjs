@@ -2,7 +2,7 @@ import algosdk, { encodeAddress, bytesToBigInt } from "algosdk";
 import { oneAddress } from "../utils/account.js";
 import { Buffer } from "buffer";
 import sha512 from "js-sha512";
-import p from "../../package.json";
+import p from "../../package.json" assert { type: "json" };
 
 const ctcInfoBc200 = 29096344; // beacon200
 const selNop = "58759fa2"; // nop()void"
