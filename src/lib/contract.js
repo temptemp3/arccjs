@@ -2,9 +2,26 @@ import algosdk, { encodeAddress, bytesToBigInt } from "algosdk";
 import { oneAddress } from "../utils/account.js";
 import { Buffer } from "buffer";
 import sha512 from "js-sha512";
+import p from "../../package.json";
 
 const ctcInfoBc200 = 29096344; // beacon200
 const selNop = "58759fa2"; // nop()void"
+
+function makeARC2Prefix(agent, dataFormat = "u") {
+  const dataFormatInput = dataFormat[0];
+  let dataFormatEnum;
+  switch (dataFormatInput) {
+    case "m":
+    case "j":
+    case "b":
+    case "u":
+      dataFormatEnum = dataFormatInput;
+      break;
+    default:
+      dataFormatEnum = "u";
+  }
+  return `${agent}:${dataFormatEnum}`;
+}
 
 async function doWaitForConfirmation(algodClient, txId) {
   let status = await algodClient.status().do();
@@ -401,13 +418,13 @@ const getEventByName = (events, name) => {
   }
   return {
     getSelector: () => getEventSelector(event),
-    next: () => { }, //() => Promise<Event<T>>,
-    nextUpToTime: () => { }, //(t: Time) => Promise<undefined | Event<T>>,
-    nextUpToNow: () => { }, //() => Promise<undefined | Event<T>>,
-    seek: () => { }, //(t: Time) => void,
-    seekNow: () => { }, //() => Promise<void>,
-    lastTime: () => { }, //() => Promise<Time>,
-    monitor: () => { }, //((Event<T>) => void) => Promise<void>,
+    next: () => {}, //() => Promise<Event<T>>,
+    nextUpToTime: () => {}, //(t: Time) => Promise<undefined | Event<T>>,
+    nextUpToNow: () => {}, //() => Promise<undefined | Event<T>>,
+    seek: () => {}, //(t: Time) => void,
+    seekNow: () => {}, //() => Promise<void>,
+    lastTime: () => {}, //() => Promise<Time>,
+    monitor: () => {}, //((Event<T>) => void) => Promise<void>,
   };
 };
 
@@ -449,6 +466,7 @@ export default class CONTRACT {
     this.beaconSel = selNop;
     this.optIns = [];
     this.onComplete = noOpOC;
+    this.agentName = `arccjs-v${p.version}`;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -529,12 +547,17 @@ export default class CONTRACT {
     return this.onComplete;
   }
 
+  getAgentName() {
+    return this.agentName;
+  }
+
+  setAgentName(agentName) {
+    this.agentName = agentName;
+  }
+
   setOnComplete(onComplete) {
-    if ([
-      noOpOC,
-      deleteApplicationOC
-    ].includes(onComplete)) {
-      this.onComplete = onComplete
+    if ([noOpOC, deleteApplicationOC].includes(onComplete)) {
+      this.onComplete = onComplete;
     }
   }
 
@@ -677,6 +700,20 @@ export default class CONTRACT {
           extraBoxRefs: [],
         };
         const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
+        const accounts = gurs?.accounts || [];
+        const accountS = new Set(accounts);
+        for (const account of this.getAccounts()) {
+          accountS.add(account);
+        }
+        const apps = gurs?.apps || [];
+        const appS = new Set(apps);
+        const assets = gurs?.assets || [];
+        const assetHoldings = gurs?.assetHoldings || [];
+        const assetS = new Set(assets);
+        for (const assetHolding of assetHoldings) {
+          const { account, asset } = assetHolding;
+          assetS.add(asset);
+        }
         const boxApps = gurs.boxes.map((x) => x.app);
         const boxNames = new Map();
         for (const box of gurs.boxes) {
@@ -685,12 +722,17 @@ export default class CONTRACT {
           }
           boxNames.get(box.app).push(box.name);
         }
+
         grsOffset += boxApps.length;
         for (const app of boxNames.keys()) {
-          // split box names into groups of 4
+          const foreignApps = [...Array.from(appS), app];
+          const foreignAssets = [...Array.from(assetS)];
+          const accounts = [...Array.from(accountS)];
+          // split box names into groups
+          const step = 2;
           const boxNamesGroups = [];
-          for (let i = 0; i < boxNames.get(app).length; i += 4) {
-            boxNamesGroups.push(boxNames.get(app).slice(i, i + 4));
+          for (let i = 0; i < boxNames.get(app).length; i += step) {
+            boxNamesGroups.push(boxNames.get(app).slice(i, i + step));
           }
           for (const boxNamesGroup of boxNamesGroups) {
             const txn = algosdk.makeApplicationCallTxnFromObject({
@@ -702,83 +744,18 @@ export default class CONTRACT {
               from: this.sender,
               appIndex: this.beaconId,
               appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
-              accounts: [...this.getAccounts()],
-              foreignApps: [app],
+              accounts,
+              foreignApps,
+              foreignAssets,
               boxes: boxNamesGroup.map((x) => ({ appIndex: app, name: x })),
+              note: this.makeUNote(
+                `${abiMethod.name} Group resource sharing transaction. Boxes: ${boxNamesGroup.length} Accounts: ${accounts.length} Apps: ${foreignApps.length} Assets: ${foreignAssets.length}`
+              ),
             });
             txns.push(txn);
           }
         }
-        // accounts
-        //   if(gurs.accounts > 0) {
-        //     // split accounts into groups of 4
-        //     const accounts = gurs.accounts;
-        //     const accountGroups = [];
-        //     for (let i = 0; i < accounts.length; i += 4) {
-        //       accountGroups.push(accounts.slice(i, i + 4));
-        //     }
-        //     for(const group of accountGroups) {
-        //       const txn = algosdk.makeApplicationCallTxnFromObject({
-        //         suggestedParams: {
-        //           ...params,
-        //           flatFee: true,
-        //           fee: 1000,
-        //         },
-        //         from: this.sender,
-        //         appIndex: this.contractId,
-        //         appArgs: [new Uint8Array(Buffer.from("e33d8052", "hex"))],
-        //         accounts: [...group],
-        //       });
-        //       txns.push(txn);
-        //     }
-        //   }
-        // ---------------------------------------
-        // appLocals
-        // sample appLocals:
-        //   {
-        //     account:
-        //       "GWV3Q335A5FLU7OEA7GSIOSCTWSRQ6BH2YARNO56O6TQ3K2MTELFNGBGVY",
-        //     app: 6779767,
-        //     attribute_map: {
-        //       account: "account",
-        //       app: "app",
-        //     },
-        //   },
-        //if (gurs.appLocals.length > 0) {
-        // not yet supported
-        //}
-        // ---------------------------------------
       }
-
-      if (this.paymentAmount > 0) {
-        const txn1 = algosdk.makePaymentTxnWithSuggestedParams(
-          this.sender,
-          algosdk.getApplicationAddress(this.contractId),
-          this.paymentAmount,
-          undefined,
-          undefined,
-          {
-            ...params,
-            flatFee: true,
-            fee: 1000,
-          }
-        );
-        txns.push(txn1);
-      }
-
-      this.transfers.forEach(([amount, addr]) => {
-        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          suggestedParams: {
-            ...params,
-            flatFee: true,
-            fee: 1000,
-          },
-          from: this.sender,
-          to: addr,
-          amount,
-        });
-        txns.push(txn);
-      });
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -795,12 +772,48 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
+      this.transfers.forEach(([amount, addr]) => {
+        const txnO = {
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: addr,
+          amount,
+          note: this.makeUNote(
+            `${abiMethod.name} Payment of ${(
+              amount / 1e6
+            ).toLocaleString()} from ${this.sender} to ${addr}`
+          ),
+        };
+        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO);
+        txns.push(txn);
+      });
+
+      if (this.paymentAmount > 0) {
+        const txnO = {
+          from: this.sender,
+          to: algosdk.getApplicationAddress(this.contractId),
+          amount: this.paymentAmount,
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          note: this.makeUNote(`${abiMethod.name} Payment to application`),
+        };
+        const txn1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO);
+        txns.push(txn1);
+      }
+
       const appCallTxns = [];
 
       // Create the application call transaction object
 
       if (abiMethod.name !== "custom") {
-        appCallTxns.push({
+        const txnO = {
           suggestedParams: {
             ...params,
             flatFee: true,
@@ -809,19 +822,90 @@ export default class CONTRACT {
           from: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-        });
+          note: this.makeUNote(`${abiMethod.name} transaction`),
+        };
+        appCallTxns.push(txnO);
       }
 
       if (this.extraTxns.length > 0) {
-        appCallTxns.push(
-          ...this.extraTxns.map((txn) => ({
+        this.extraTxns.forEach((txn) => {
+          const customNote = !txn.note
+            ? `extra transaction`
+            : new TextDecoder().decode(txn.note);
+          const appCallTxnObj = {
             ...txn,
             suggestedParams: {
               ...params,
               flatFee: true,
               fee: this.fee,
             },
-          }))
+            note: this.makeUNote(`${abiMethod.name} ${customNote}`),
+          };
+          const srcTxn =
+            algosdk.makeApplicationCallTxnFromObject(appCallTxnObj);
+          if (txn.xaid && txn.snd && txn.arcv && txn.snd === txn.arcv) {
+            const assetTransferTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: txn.snd,
+              to: txn.arcv,
+              amount: 0,
+              assetIndex: txn.xaid,
+              note: this.makeUNote(
+                `${abiMethod.name} Asset optin for following transaction`
+              ),
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(
+                assetTransferTxnObj
+              )
+            );
+          }
+          if (txn.payment) {
+            const txnO = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: this.sender,
+              to: algosdk.getApplicationAddress(txn.appIndex),
+              amount: txn.payment,
+              note: this.makeUNote(`${abiMethod.name} Payment to application`),
+            };
+            txns.push(
+              algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO)
+            );
+          }
+          if (txn.xaid && txn.aamt) {
+            const txnO = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: this.sender,
+              to: algosdk.getApplicationAddress(txn.appIndex),
+              amount: txn.aamt,
+              assetIndex: txn.xaid,
+              note: this.makeUNote(
+                `${abiMethod.name} Asset transfer to application`
+              ),
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(txnO)
+            );
+          }
+          txns.push(srcTxn);
+        });
+      } else {
+        txns.push(
+          ...appCallTxns.map((appCallTxn, i) =>
+            algosdk.makeApplicationCallTxnFromObject(appCallTxn)
+          )
         );
       }
 
@@ -863,8 +947,8 @@ export default class CONTRACT {
               const tBoxes = this.enableGroupResourceSharing
                 ? []
                 : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                  .filter((x) => tApps.includes(x.app))
-                  .map((x) => ({ appIndex: x.app, name: x.name }));
+                    .filter((x) => tApps.includes(x.app))
+                    .map((x) => ({ appIndex: x.app, name: x.name }));
               // transaction accounts
               const tAccounts = Array.from(
                 new Set([...(gurs?.accounts ?? []), ...(turs?.accounts ?? [])])
@@ -885,7 +969,8 @@ export default class CONTRACT {
               const ftxn = {
                 ...txn,
                 ...unnamedResourcesAccessed,
-                onComplete: this.getOnComplete()
+                onComplete: this.getOnComplete(),
+                note: this.makeUNote(`${abiMethod.name} transaction`),
               };
               return ftxn;
             })(appCallTxn)
@@ -905,6 +990,9 @@ export default class CONTRACT {
             to: this.sender,
             amount: 0,
             assetIndex: optIn,
+            note: this.makeUNote(
+              `${abiMethod.name} Asset optin for asset ${optIn}`
+            ),
           });
         });
         txns.push(...optInTxns);
@@ -921,6 +1009,13 @@ export default class CONTRACT {
       // console.error('Error in createAndSimulateTxn:', error);
       throw error; // Re-throw the error after logging it
     }
+  }
+
+  makeUNote(mgs) {
+    return new TextEncoder().encode(
+      `${makeARC2Prefix(this.getAgentName())} ${mgs}`,
+      "utf-8"
+    );
   }
 
   getRIndex() {
@@ -945,37 +1040,6 @@ export default class CONTRACT {
 
       const txns = [];
 
-      if (this.paymentAmount > 0) {
-        const txn1 = txns.push(
-          algosdk.makePaymentTxnWithSuggestedParams(
-            this.sender,
-            algosdk.getApplicationAddress(this.contractId),
-            this.paymentAmount,
-            undefined,
-            undefined,
-            {
-              ...params,
-              flatFee: true,
-              fee: 1000,
-            }
-          )
-        );
-      }
-
-      this.transfers.forEach(([amount, addr]) => {
-        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          suggestedParams: {
-            ...params,
-            flatFee: true,
-            fee: 1000,
-          },
-          from: this.sender,
-          to: addr,
-          amount,
-        });
-        txns.push(txn);
-      });
-
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
           suggestedParams: {
@@ -991,6 +1055,36 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
+      this.transfers.forEach(([amount, addr]) => {
+        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+          from: this.sender,
+          to: addr,
+          amount,
+        });
+        txns.push(txn);
+      });
+
+      if (this.paymentAmount > 0) {
+        const txnO = {
+          from: this.sender,
+          to: algosdk.getApplicationAddress(this.contractId),
+          amount: this.paymentAmount,
+          suggestedParams: {
+            ...params,
+            flatFee: true,
+            fee: 1000,
+          },
+        };
+        const txn1 = txns.push(
+          algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO)
+        );
+      }
+
       const appCallTxns = [];
 
       if (abiMethod.name !== "custom") {
@@ -1003,28 +1097,80 @@ export default class CONTRACT {
           from: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
-          onComplete: this.getOnComplete()
+          onComplete: this.getOnComplete(),
         });
       }
 
       if (this.extraTxns.length > 0) {
-        appCallTxns.push(
-          ...this.extraTxns.map((txn) => ({
+        this.extraTxns.forEach((txn) => {
+          if (txn.xaid && txn.snd && txn.arcv && txn.snd === txn.arcv) {
+            const assetTransferTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: txn.snd,
+              to: txn.arcv,
+              amount: 0,
+              assetIndex: txn.xaid,
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(
+                assetTransferTxnObj
+              )
+            );
+          }
+          if (txn.payment) {
+            const paymentTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: this.sender,
+              to: algosdk.getApplicationAddress(txn.appIndex),
+              amount: txn.payment,
+            };
+            txns.push(
+              algosdk.makePaymentTxnWithSuggestedParamsFromObject(paymentTxnObj)
+            );
+          }
+          if (txn.xaid && txn.aamt) {
+            const assetTransferTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: this.sender,
+              to: algosdk.getApplicationAddress(txn.appIndex),
+              amount: txn.aamt,
+              assetIndex: txn.xaid,
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(
+                assetTransferTxnObj
+              )
+            );
+          }
+          const appCallTxnObj = {
             ...txn,
             suggestedParams: {
               ...params,
               flatFee: true,
               fee: this.fee,
             },
-          }))
+          };
+          txns.push(algosdk.makeApplicationCallTxnFromObject(appCallTxnObj));
+        });
+      } else {
+        txns.push(
+          ...appCallTxns.map((appCallTxn, i) =>
+            algosdk.makeApplicationCallTxnFromObject(appCallTxn)
+          )
         );
       }
-
-      txns.push(
-        ...appCallTxns.map((appCallTxn, i) =>
-          algosdk.makeApplicationCallTxnFromObject(appCallTxn)
-        )
-      );
 
       const txngroup = algosdk.assignGroupID(txns);
       // Sign the transaction
@@ -1063,7 +1209,7 @@ export default class CONTRACT {
         throw response.txnGroups[0].failureMessage;
       }
       // -----------------------------------------
-      // return type void handled before decoding to workaround 
+      // return type void handled before decoding to workaround
       // difference in compiler ouput
       //   puya genearted teal programs will fail to pop logs
       //   reachc generated teal programs will not produce an error
