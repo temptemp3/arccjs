@@ -289,7 +289,8 @@ const getEvents = (txn, selectors) => {
 };
 
 const getEventsByNames = async (ci, names, query) => {
-  const { minRound, maxRound, address, round, txid, sender } = query || {};
+  const { minRound, maxRound, address, round, txid, sender, limit } =
+    query || {};
   const events = {};
   const selectorNameLookup = {};
   const selectorSignatureLookup = {};
@@ -321,6 +322,7 @@ const getEventsByNames = async (ci, names, query) => {
     if (address) itxn.address(address);
     if (round) itxn.round(round);
     if (txid) itxn.txid(txid);
+    if (limit) itxn.limit(limit);
     const res = await itxn.do();
     for (const txn of res.transactions) {
       txns.push(txn);
@@ -343,6 +345,7 @@ const getEventsByNames = async (ci, names, query) => {
     if (sender) ilog.sender(sender);
     if (round) ilog.round(round);
     if (txid) ilog.txid(txid);
+    if (limit) ilog.limit(limit);
     const res = await ilog.do();
     if (next === res["next-token"]) break;
     const rLogData = res["log-data"];
