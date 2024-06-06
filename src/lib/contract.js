@@ -238,6 +238,14 @@ const decodeEventArgs = (args, x) => {
         encoded.push([a, b]);
         break;
       }
+      case "((uint256),(uint256))": {
+        const a = bytesToBigInt(argv.slice(index, index + 8));
+        index += 8;
+        const b = bytesToBigInt(argv.slice(index, index + 8));
+        index += 8;
+        encoded.push([[a], [b]]);
+        break;
+      }
       case "(uint256,uint256,uint256,address,byte)": {
         const a = bytesToBigInt(argv.slice(index, index + 32));
         index += 32;
