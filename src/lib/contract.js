@@ -126,10 +126,10 @@ const decodeEventArgs = (args, x) => {
       case "(address,(uint256,uint256))": {
         const a = encodeAddress(argv.slice(index, index + 32));
         index += 32;
-        const b = bytesToBigInt(argv.slice(index, index + 8));
-        index += 8;
-        const c = bytesToBigInt(argv.slice(index, index + 8));
-        index += 8;
+        const b = bytesToBigInt(argv.slice(index, index + 32));
+        index += 32;
+        const c = bytesToBigInt(argv.slice(index, index + 32));
+        index += 32;
         encoded.push([a, [b, c]]);
         break;
       }
@@ -492,6 +492,7 @@ export default class CONTRACT {
     this.optIns = [];
     this.onComplete = noOpOC;
     this.agentName = `arccjs-v${p.version}`;
+    this.step = 2;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -574,6 +575,14 @@ export default class CONTRACT {
 
   getAgentName() {
     return this.agentName;
+  }
+
+  getStep() {
+    return this.step;
+  }
+
+  setStep(step) {
+    this.step = step;
   }
 
   setAgentName(agentName) {
@@ -754,7 +763,7 @@ export default class CONTRACT {
           const foreignAssets = [...Array.from(assetS)];
           const accounts = [...Array.from(accountS)];
           // split box names into groups
-          const step = 2;
+          const step = this.getStep();
           const boxNamesGroups = [];
           for (let i = 0; i < boxNames.get(app).length; i += step) {
             boxNamesGroups.push(boxNames.get(app).slice(i, i + step));
@@ -857,7 +866,7 @@ export default class CONTRACT {
           const customNote = !txn.note
             ? `extra transaction`
             : new TextDecoder().decode(txn.note);
-          const appCallTxnObj = {
+          const txnObj = {
             ...txn,
             suggestedParams: {
               ...params,
@@ -866,8 +875,9 @@ export default class CONTRACT {
             },
             note: this.makeUNote(`${abiMethod.name} ${customNote}`),
           };
-          const srcTxn =
-            algosdk.makeApplicationCallTxnFromObject(appCallTxnObj);
+          const srcTxn = !!txn.approvalProgram
+            ? algosdk.makeApplicationCreateTxnFromObject(txnObj)
+            : algosdk.makeApplicationCallTxnFromObject(txnObj);
           if (txn.xaid && txn.snd && txn.arcv && txn.snd === txn.arcv) {
             const assetTransferTxnObj = {
               suggestedParams: {
