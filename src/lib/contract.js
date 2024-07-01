@@ -937,81 +937,91 @@ export default class CONTRACT {
           txns.push(srcTxn);
         });
       } else {
+        // if we don't need to map references
+        //
+        // txns.push(
+        //   ...appCallTxns.map((appCallTxn, i) =>
+        //     algosdk.makeApplicationCallTxnFromObject(appCallTxn)
+        //   )
+        // );
+        //
+        // if single transaction not using group resource sharing
+        //
+        // Add the application call transactions to the list of transactions
+        // with unnamed resources accessed added
+        const offset = this.paymentAmount > 0 ? 1 : 0; // offset for payment transaction
+        const index =
+          grsOffset +
+          offset +
+          this.assetTransfers.length +
+          this.transfers.length; // index for appCallTxns
+        // unnamedResourcesAccessed fallback
+        const ura = {
+          accounts: [],
+          appLocals: [],
+          apps: [],
+          assetHoldings: [],
+          assets: [],
+          boxes: [],
+          extraBoxRefs: [],
+        };
+        // group unnamedResourcesAccessed
+        const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
         txns.push(
-          ...appCallTxns.map((appCallTxn, i) =>
-            algosdk.makeApplicationCallTxnFromObject(appCallTxn)
+          ...appCallTxns.map((appCallTxn, j) =>
+            algosdk.makeApplicationCallTxnFromObject(
+              ((txn) => {
+                const i = j + index;
+                // transaction unnamedResourcesAccessed raw
+                const turs =
+                  sRes.txnGroups[0]?.txnResults[i]?.unnamedResourcesAccessed ??
+                  ura;
+                // transaction apps
+                const tApps = Array.from(
+                  new Set([
+                    txn.appIndex,
+                    ...(gurs?.apps ?? []),
+                    ...(turs?.apps ?? []),
+                  ])
+                );
+                // transaction boxes
+                const tBoxes = this.enableGroupResourceSharing
+                  ? []
+                  : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
+                      .filter((x) => tApps.includes(x.app))
+                      .map((x) => ({ appIndex: x.app, name: x.name }));
+                // transaction accounts
+                const tAccounts = Array.from(
+                  new Set([
+                    ...(gurs?.accounts ?? []),
+                    ...(turs?.accounts ?? []),
+                  ])
+                );
+                // transaction assets
+                const tAssets = Array.from(
+                  new Set([...(gurs?.assets ?? []), ...(turs?.assets ?? [])])
+                );
+                // transaction unnamedResourcesAccessed prepared
+                const unnamedResourcesAccessed = {
+                  accounts: tAccounts,
+                  boxes: tBoxes,
+                  accounts: tAccounts,
+                  foreignApps: tApps,
+                  foreignAssets: tAssets,
+                };
+                // final transaction
+                const ftxn = {
+                  ...txn,
+                  ...unnamedResourcesAccessed,
+                  onComplete: this.getOnComplete(),
+                  note: this.makeUNote(`${abiMethod.name} transaction`),
+                };
+                return ftxn;
+              })(appCallTxn)
+            )
           )
         );
       }
-
-      // Add the application call transactions to the list of transactions
-      // with unnamed resources accessed added
-      const offset = this.paymentAmount > 0 ? 1 : 0; // offset for payment transaction
-      const index =
-        grsOffset + offset + this.assetTransfers.length + this.transfers.length; // index for appCallTxns
-      // unnamedResourcesAccessed fallback
-      const ura = {
-        accounts: [],
-        appLocals: [],
-        apps: [],
-        assetHoldings: [],
-        assets: [],
-        boxes: [],
-        extraBoxRefs: [],
-      };
-      // group unnamedResourcesAccessed
-      const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
-      txns.push(
-        ...appCallTxns.map((appCallTxn, j) =>
-          algosdk.makeApplicationCallTxnFromObject(
-            ((txn) => {
-              const i = j + index;
-              // transaction unnamedResourcesAccessed raw
-              const turs =
-                sRes.txnGroups[0]?.txnResults[i]?.unnamedResourcesAccessed ??
-                ura;
-              // transaction apps
-              const tApps = Array.from(
-                new Set([
-                  txn.appIndex,
-                  ...(gurs?.apps ?? []),
-                  ...(turs?.apps ?? []),
-                ])
-              );
-              // transaction boxes
-              const tBoxes = this.enableGroupResourceSharing
-                ? []
-                : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                    .filter((x) => tApps.includes(x.app))
-                    .map((x) => ({ appIndex: x.app, name: x.name }));
-              // transaction accounts
-              const tAccounts = Array.from(
-                new Set([...(gurs?.accounts ?? []), ...(turs?.accounts ?? [])])
-              );
-              // transaction assets
-              const tAssets = Array.from(
-                new Set([...(gurs?.assets ?? []), ...(turs?.assets ?? [])])
-              );
-              // transaction unnamedResourcesAccessed prepared
-              const unnamedResourcesAccessed = {
-                accounts: tAccounts,
-                boxes: tBoxes,
-                accounts: tAccounts,
-                foreignApps: tApps,
-                foreignAssets: tAssets,
-              };
-              // final transaction
-              const ftxn = {
-                ...txn,
-                ...unnamedResourcesAccessed,
-                onComplete: this.getOnComplete(),
-                note: this.makeUNote(`${abiMethod.name} transaction`),
-              };
-              return ftxn;
-            })(appCallTxn)
-          )
-        )
-      );
 
       if (this.optIns.length > 0) {
         const optInTxns = this.optIns.map((optIn) => {
