@@ -1072,10 +1072,19 @@ export default class CONTRACT {
     return offsets.reduce((a, b) => a + b, 0);
   }
 
+  /*
+   * simulateTxn
+   * - Returns the simulation response
+   * @param {Object} abiMethod - The ABI method object
+   * @param {Array} args - The arguments to the method
+   */
   async simulateTxn(abiMethod, args) {
     try {
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
+
+      const acctInfo = await this.algodClient.accountInformation(this.sender).do();
+      const authAddr = acctInfo["auth-addr"] || acctInfo.address;
 
       // Encode arguments
 
@@ -1083,7 +1092,12 @@ export default class CONTRACT {
         return abiMethod.args[index].type.encode(arg);
       });
 
+      // begin build transaction list for group
+
       const txns = [];
+
+      // front load asset transfers from the sender to the contract
+      // may depreciate this in the future for custom transactions with xaid and aamt set
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -1100,6 +1114,9 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
+      // front load algos transfers from the sender to the contract
+      // may depreciate this in the future for custom transactions with payment set
+
       this.transfers.forEach(([amount, addr]) => {
         const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
           suggestedParams: {
@@ -1114,6 +1131,9 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
+      // conditionally add payment transaction 
+      // if payment amount is set
+
       if (this.paymentAmount > 0) {
         const txnO = {
           from: this.sender,
@@ -1125,10 +1145,12 @@ export default class CONTRACT {
             fee: 1000,
           },
         };
-        const txn1 = txns.push(
+        txns.push(
           algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO)
         );
       }
+
+      // build application call transactions
 
       const appCallTxns = [];
 
@@ -1217,16 +1239,25 @@ export default class CONTRACT {
         );
       }
 
-      const txngroup = algosdk.assignGroupID(txns);
-      // Sign the transaction
-      const stxns = txns.map(algosdk.encodeUnsignedSimulateTransaction);
+      // end build transaction list for group
+
+      const txnGroup =  new algosdk.modelsv2.SimulateRequestTransactionGroup({
+        txns: algosdk.assignGroupID(txns).map((value, index) => {
+          return {
+            ...(algosdk.decodeObj(
+              algosdk.encodeUnsignedSimulateTransaction(value)
+            )),
+            ...(authAddr && {
+              sgnr: new Uint8Array(Buffer.from(algosdk.decodeAddress(authAddr).publicKey))
+            }),
+          };
+        })
+      })
 
       // Construct the simulation request
       const request = new algosdk.modelsv2.SimulateRequest({
         txnGroups: [
-          new algosdk.modelsv2.SimulateRequestTransactionGroup({
-            txns: stxns.map(algosdk.decodeObj),
-          }),
+          txnGroup,
         ],
         allowUnnamedResources: true,
         allowEmptySignatures: true,
@@ -1236,6 +1267,7 @@ export default class CONTRACT {
       const response = await this.algodClient
         .simulateTransactions(request)
         .do();
+
       return response;
     } catch (error) {
       // console.error('Error in createAndSimulateTxn:', error);

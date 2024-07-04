@@ -1,6 +1,9 @@
 import { it } from "node:test";
 import CONTRACT, { genericHash, getEventSignature } from "./contract.js";
 
+// test simulating txns without auth-addr
+// test simulating txns with auth-addr
+
 // const abi = {
 //   name: "arc200",
 //   description: "arc200",
