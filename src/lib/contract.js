@@ -2,7 +2,7 @@ import algosdk, { encodeAddress, bytesToBigInt } from "algosdk";
 import { oneAddress } from "../utils/account.js";
 import { Buffer } from "buffer";
 import sha512 from "js-sha512";
-import p from "../../package.json" assert { type: "json" };
+import { version } from "../../version.js";
 
 const ctcInfoBc200 = 29096344; // beacon200
 const selNop = "58759fa2"; // nop()void"
@@ -491,7 +491,7 @@ export default class CONTRACT {
     this.beaconSel = selNop;
     this.optIns = [];
     this.onComplete = noOpOC;
-    this.agentName = `arccjs-v${p.version}`;
+    this.agentName = `arccjs-v${version}`;
     this.step = 2;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
