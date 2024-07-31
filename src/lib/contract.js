@@ -941,7 +941,7 @@ export default class CONTRACT {
             suggestedParams: {
               ...params,
               flatFee: true,
-              fee: this.fee,
+              fee: txn.fee || this.fee,
             },
             note: this.makeUNote(`${abiMethod.name} ${customNote}`),
           };
@@ -1005,7 +1005,8 @@ export default class CONTRACT {
               );
           }
           if(!txn.ignore) {
-            txns.push(srcTxn);
+            txns.push(
+              srcTxn);
           }
         });
       } else {
@@ -1296,7 +1297,7 @@ export default class CONTRACT {
             suggestedParams: {
               ...params,
               flatFee: true,
-              fee: this.fee,
+              fee: txn.fee || this.fee,
             },
           };
           txns.push(algosdk.makeApplicationCallTxnFromObject(appCallTxnObj));
