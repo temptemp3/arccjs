@@ -101,6 +101,10 @@ const decodeEventArgs = (args, x) => {
         encoded.push(argv.slice(index, index + 32).toString("hex"));
         index += 32;
         break;
+      case "byte[64]":
+        encoded.push(argv.slice(index, index + 64).toString("hex"));
+        index += 64;
+        break;
       case "byte[96]":
         encoded.push(argv.slice(index, index + 96).toString("hex"));
         index += 96;
