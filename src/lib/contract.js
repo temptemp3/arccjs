@@ -739,8 +739,6 @@ export default class CONTRACT {
         };
         const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
 
-        console.log({ gurs });
-
         const accounts = gurs?.accounts || [];
 
         const accountS = new Set(accounts);
