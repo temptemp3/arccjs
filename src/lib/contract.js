@@ -4,7 +4,8 @@ import { Buffer } from "buffer";
 import sha512 from "js-sha512";
 import { version } from "../../version.js";
 
-const ctcInfoBc200 = 29096344; // beacon200
+// TODO allow switching between mainnet and testnet
+const ctcInfoBc200 = 376092; // safe200 Voimain
 const selNop = "58759fa2"; // nop()void"
 
 function makeARC2Prefix(agent, dataFormat = "u") {
