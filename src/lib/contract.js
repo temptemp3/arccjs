@@ -498,6 +498,7 @@ export default class CONTRACT {
     this.onComplete = noOpOC;
     this.agentName = `arccjs-v${version}`;
     this.step = 2;
+    this.debug = false;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -584,6 +585,14 @@ export default class CONTRACT {
 
   getStep() {
     return this.step;
+  }
+
+  getDebug() {
+    return this.debug;
+  }
+
+  setDebug(debug) {
+    this.debug = debug;
   }
 
   setStep(step) {
@@ -752,10 +761,55 @@ export default class CONTRACT {
 
         const assets = gurs?.assets || [];
         const assetS = new Set(assets);
+
         const assetHoldings = gurs?.assetHoldings || [];
         for (const assetHolding of assetHoldings) {
           const { account, asset } = assetHolding;
           assetS.add(asset);
+        }
+
+        const assetHoldingGroups = [];
+        const assetHoldingStep = 4; // Adjust the step size as needed
+
+        // Grouping assetHoldings into sets of 'assetHoldingStep'
+        for (let i = 0; i < assetHoldings.length; i += assetHoldingStep) {
+          assetHoldingGroups.push(assetHoldings.slice(i, i + assetHoldingStep));
+        }
+
+        for (const assetHoldingGroup of assetHoldingGroups) {
+          const assetS = new Set();
+          const accountS = new Set();
+
+          // Extracting assets and accounts from each group
+          for (const assetHolding of assetHoldingGroup) {
+            const { asset, account } = assetHolding;
+            assetS.add(asset);
+            accountS.add(account);
+          }
+
+          const assets = Array.from(assetS);
+          const accounts = Array.from(accountS);
+
+          // Creating a transaction, similar to your appLocals logic
+          const txn = algosdk.makeApplicationCallTxnFromObject({
+            suggestedParams: {
+              ...params,
+              flatFee: true,
+              fee: 1000,
+            },
+            from: this.sender,
+            appIndex: this.beaconId,
+            appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
+            accounts: accounts,
+            foreignApps: [],
+            foreignAssets: assets, // Use the assets in place of foreignApps
+            boxes: [],
+            note: this.makeUNote(
+              `AssetHoldings Group resource sharing transaction. AssetHoldings: ${assetHoldingGroup.length}`
+            ),
+          });
+
+          txns.push(txn);
         }
 
         const boxApps = gurs.boxes.map((x) => x.app);
@@ -774,9 +828,9 @@ export default class CONTRACT {
         for (let i = 0; i < appLocals.length; i += appLocalStep) {
           appLocalGroups.push(appLocals.slice(i, i + appLocalStep));
         }
-        for(const appLocalGroup of appLocalGroups) {
-          const appS = new Set()
-          const accountS = new Set()
+        for (const appLocalGroup of appLocalGroups) {
+          const appS = new Set();
+          const accountS = new Set();
           for (const appLocal of appLocalGroup) {
             const { app, account } = appLocal;
             appS.add(app);
@@ -808,7 +862,7 @@ export default class CONTRACT {
         for (let i = 0; i < accounts.length; i += 4) {
           accountsGroups.push(accounts.slice(i, i + 4));
         }
-        for(const accountsGroup of accountsGroups) {
+        for (const accountsGroup of accountsGroups) {
           const foreignApps = Array.from(appS);
           const foreignAssets = Array.from(assetS);
           const txn = algosdk.makeApplicationCallTxnFromObject({
@@ -829,8 +883,10 @@ export default class CONTRACT {
             ),
           });
           txns.push(txn);
-      }
-        
+        }
+
+        // box resource sharing
+
         for (const app of boxNames.keys()) {
           // split box names into groups
           const boxNamesGroups = [];
@@ -858,7 +914,72 @@ export default class CONTRACT {
             txns.push(txn);
           }
         }
-      }
+
+        // alternative box resource sharing approach, looks promising
+
+        // const MAX_REFERENCES = 8;
+
+        // for (const [app, boxes] of boxNames.entries()) {
+        //   // Keep track of foreign apps and box names per transaction
+        //   let foreignApps = [];
+        //   let boxNamesGroup = [];
+
+        //   for (let i = 0; i < boxes.length; i++) {
+        //     // If adding this app and its box would exceed the max references, create the transaction
+        //     if (foreignApps.length + boxNamesGroup.length >= MAX_REFERENCES) {
+        //       const txn = algosdk.makeApplicationCallTxnFromObject({
+        //         suggestedParams: {
+        //           ...params,
+        //           flatFee: true,
+        //           fee: 1000,
+        //         },
+        //         from: this.sender,
+        //         appIndex: this.beaconId,
+        //         appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
+        //         accounts: [],
+        //         foreignApps: foreignApps, // combined foreign apps
+        //         foreignAssets: [],
+        //         boxes: boxNamesGroup, // combined boxes for the current transaction
+        //         note: this.makeUNote(
+        //           `${abiMethod.name} Group resource sharing transaction. Apps: ${foreignApps.length}, Boxes: ${boxNamesGroup.length}`
+        //         ),
+        //       });
+        //       txns.push(txn);
+
+        //       // Reset for the next transaction
+        //       foreignApps = [];
+        //       boxNamesGroup = [];
+        //     }
+
+        //     // Add the current app and its box to the current group
+        //     foreignApps.push(app);
+        //     boxNamesGroup.push({ appIndex: app, name: boxes[i] });
+        //   }
+
+        //   // Create a transaction for any remaining foreign apps and box names
+        //   if (foreignApps.length > 0 || boxNamesGroup.length > 0) {
+        //     const txn = algosdk.makeApplicationCallTxnFromObject({
+        //       suggestedParams: {
+        //         ...params,
+        //         flatFee: true,
+        //         fee: 1000,
+        //       },
+        //       from: this.sender,
+        //       appIndex: this.beaconId,
+        //       appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
+        //       accounts: [],
+        //       foreignApps: foreignApps,
+        //       foreignAssets: [],
+        //       boxes: boxNamesGroup,
+        //       note: this.makeUNote(
+        //         `${abiMethod.name} Final group transaction. Apps: ${foreignApps.length}, Boxes: ${boxNamesGroup.length}`
+        //       ),
+        //     });
+        //     txns.push(txn);
+        //   }
+        // }
+
+      } // end of group resource sharing
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -978,7 +1099,9 @@ export default class CONTRACT {
               from: this.sender,
               to: algosdk.getApplicationAddress(txn.appIndex),
               amount: txn.payment,
-              note: txn.paymentNote || this.makeUNote(`${abiMethod.name} Payment to application`),
+              note:
+                txn.paymentNote ||
+                this.makeUNote(`${abiMethod.name} Payment to application`),
             };
             txns.push(
               algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO)
@@ -999,13 +1122,12 @@ export default class CONTRACT {
                 `${abiMethod.name} Asset transfer to application`
               ),
             };
-              txns.push(
-                algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(txnO)
-              );
-          }
-          if(!txn.ignore) {
             txns.push(
-              srcTxn);
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(txnO)
+            );
+          }
+          if (!txn.ignore) {
+            txns.push(srcTxn);
           }
         });
       } else {
@@ -1115,9 +1237,11 @@ export default class CONTRACT {
         txns.push(...optInTxns);
       }
 
-      const utxns = algosdk.assignGroupID(txns).map((t) =>
-        Buffer.from(algosdk.encodeUnsignedTransaction(t)).toString("base64")
-      );
+      const utxns = algosdk
+        .assignGroupID(txns)
+        .map((t) =>
+          Buffer.from(algosdk.encodeUnsignedTransaction(t)).toString("base64")
+        );
 
       return utxns;
     } catch (error) {
@@ -1153,7 +1277,9 @@ export default class CONTRACT {
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
 
-      const acctInfo = await this.algodClient.accountInformation(this.sender).do();
+      const acctInfo = await this.algodClient
+        .accountInformation(this.sender)
+        .do();
       const authAddr = acctInfo["auth-addr"] || acctInfo.address;
 
       // Encode arguments
@@ -1201,7 +1327,7 @@ export default class CONTRACT {
         txns.push(txn);
       });
 
-      // conditionally add payment transaction 
+      // conditionally add payment transaction
       // if payment amount is set
 
       if (this.paymentAmount > 0) {
@@ -1215,9 +1341,7 @@ export default class CONTRACT {
             fee: 1000,
           },
         };
-        txns.push(
-          algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO)
-        );
+        txns.push(algosdk.makePaymentTxnWithSuggestedParamsFromObject(txnO));
       }
 
       // build application call transactions
@@ -1311,24 +1435,24 @@ export default class CONTRACT {
 
       // end build transaction list for group
 
-      const txnGroup =  new algosdk.modelsv2.SimulateRequestTransactionGroup({
+      const txnGroup = new algosdk.modelsv2.SimulateRequestTransactionGroup({
         txns: algosdk.assignGroupID(txns).map((value, index) => {
           return {
-            ...(algosdk.decodeObj(
+            ...algosdk.decodeObj(
               algosdk.encodeUnsignedSimulateTransaction(value)
-            )),
+            ),
             ...(authAddr && {
-              sgnr: new Uint8Array(Buffer.from(algosdk.decodeAddress(authAddr).publicKey))
+              sgnr: new Uint8Array(
+                Buffer.from(algosdk.decodeAddress(authAddr).publicKey)
+              ),
             }),
           };
-        })
-      })
+        }),
+      });
 
       // Construct the simulation request
       const request = new algosdk.modelsv2.SimulateRequest({
-        txnGroups: [
-          txnGroup,
-        ],
+        txnGroups: [txnGroup],
         allowUnnamedResources: true,
         allowEmptySignatures: true,
       });
