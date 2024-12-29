@@ -978,7 +978,6 @@ export default class CONTRACT {
         //     txns.push(txn);
         //   }
         // }
-
       } // end of group resource sharing
 
       this.assetTransfers.forEach(([amount, token]) => {
@@ -1068,7 +1067,38 @@ export default class CONTRACT {
           const srcTxn = !!txn.approvalProgram
             ? algosdk.makeApplicationCreateTxnFromObject(txnObj)
             : algosdk.makeApplicationCallTxnFromObject(txnObj);
-          if (txn.xaid && txn.snd && txn.arcv && txn.snd === txn.arcv) {
+          if (
+            txn.xaid &&
+            txn.snd &&
+            txn.arcv &&
+            txn.snd !== txn.arcv &&
+            txn.xamt
+          ) {
+            const assetTransferTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: txn.snd,
+              to: txn.arcv,
+              amount: txn.xamt,
+              assetIndex: txn.xaid,
+              note: txn.xano,
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(
+                assetTransferTxnObj
+              )
+            );
+          }
+          if (
+            txn.xaid &&
+            txn.snd &&
+            txn.arcv &&
+            txn.snd === txn.arcv &&
+            !txn.xamt
+          ) {
             const assetTransferTxnObj = {
               suggestedParams: {
                 ...params,
@@ -1364,7 +1394,38 @@ export default class CONTRACT {
 
       if (this.extraTxns.length > 0) {
         this.extraTxns.forEach((txn) => {
-          if (txn.xaid && txn.snd && txn.arcv && txn.snd === txn.arcv) {
+          if (
+            txn.xaid &&
+            txn.snd &&
+            txn.arcv &&
+            txn.snd !== txn.arcv &&
+            txn.xamt
+          ) {
+            const assetTransferTxnObj = {
+              suggestedParams: {
+                ...params,
+                flatFee: true,
+                fee: 1000,
+              },
+              from: txn.snd,
+              to: txn.arcv,
+              amount: txn.xamt,
+              assetIndex: txn.xaid,
+              note: txn.xano,
+            };
+            txns.push(
+              algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(
+                assetTransferTxnObj
+              )
+            );
+          }
+          if (
+            txn.xaid &&
+            txn.snd &&
+            txn.arcv &&
+            txn.snd === txn.arcv &&
+            txn.xamt
+          ) {
             const assetTransferTxnObj = {
               suggestedParams: {
                 ...params,
