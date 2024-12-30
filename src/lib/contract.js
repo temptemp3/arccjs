@@ -8,6 +8,15 @@ import { version } from "../../version.js";
 const ctcInfoBc200 = 376092; // safe200 Voimain
 const selNop = "58759fa2"; // nop()void"
 
+function extractAppCallTxnObjReferenced(txn) {
+  return {
+    accounts: txn.accounts || [],
+    foreignApps: txn.foreignApps || [],
+    foreignAssets: txn.foreignAssets || [],
+    boxes: txn.boxes || [],
+  };
+}
+
 function makeARC2Prefix(agent, dataFormat = "u") {
   const dataFormatInput = dataFormat[0];
   let dataFormatEnum;
@@ -492,6 +501,7 @@ export default class CONTRACT {
     this.extraTxns = [];
     this.objectOnly = objectOnly;
     this.enableGroupResourceSharing = false;
+    this.groupResourceSharingStrategy = "default";
     this.beaconId = ctcInfoBc200;
     this.beaconSel = selNop;
     this.optIns = [];
@@ -536,6 +546,18 @@ export default class CONTRACT {
           return res;
         }
       }.bind(this);
+    }
+  }
+
+  getGroupResourceSharingStrategy() {
+    return this.groupResourceSharingStrategy;
+  }
+
+  setGroupResourceSharingStrategy(groupResourceSharingStrategy) {
+    if (["default", "merge"].includes(groupResourceSharingStrategy)) {
+      this.groupResourceSharingStrategy = groupResourceSharingStrategy;
+    } else {
+      throw new Error("Invalid group resource sharing strategy");
     }
   }
 
@@ -735,6 +757,11 @@ export default class CONTRACT {
 
       const txns = [];
 
+      const assetHoldingTxnObjs = [];
+      const appLocalTxnObjs = [];
+      const accountTxnObjs = [];
+      const appBoxTxnObjs = [];
+
       // build group resource sharing txns in case of extra txns (only boxes)
       let grsOffset = 0;
       if (this.enableGroupResourceSharing && this.extraTxns.length > 0) {
@@ -791,7 +818,7 @@ export default class CONTRACT {
           const accounts = Array.from(accountS);
 
           // Creating a transaction, similar to your appLocals logic
-          const txn = algosdk.makeApplicationCallTxnFromObject({
+          const assetHoldingTxnObj = {
             suggestedParams: {
               ...params,
               flatFee: true,
@@ -807,9 +834,9 @@ export default class CONTRACT {
             note: this.makeUNote(
               `AssetHoldings Group resource sharing transaction. AssetHoldings: ${assetHoldingGroup.length}`
             ),
-          });
-
-          txns.push(txn);
+          };
+          assetHoldingTxnObjs.push(assetHoldingTxnObj);
+          //txns.push(algosdk.makeApplicationCallTxnFromObject(assetHoldingTxnObj));
         }
 
         const boxApps = gurs.boxes.map((x) => x.app);
@@ -838,7 +865,8 @@ export default class CONTRACT {
           }
           const apps = Array.from(appS);
           const accounts = Array.from(accountS);
-          const txn = algosdk.makeApplicationCallTxnFromObject({
+
+          const appLocalTxnObj = {
             suggestedParams: {
               ...params,
               flatFee: true,
@@ -852,10 +880,15 @@ export default class CONTRACT {
             foreignAssets: [],
             boxes: [],
             note: this.makeUNote(
-              `${abiMethod.name} Group resource sharing transaction. AppLocals: ${appLocalGroup.length}`
+              `${
+                abiMethod.name
+              } Group resource sharing transaction. AppLocals: ${
+                appLocalGroup.length
+              } Accounts: ${accounts.join(",")} Apps: ${apps.join(",")}`
             ),
-          });
-          txns.push(txn);
+          };
+          appLocalTxnObjs.push(appLocalTxnObj);
+          //txns.push(algosdk.makeApplicationCallTxnFromObject(appLocalTxnObj));
         }
 
         const accountsGroups = [];
@@ -865,7 +898,7 @@ export default class CONTRACT {
         for (const accountsGroup of accountsGroups) {
           const foreignApps = Array.from(appS);
           const foreignAssets = Array.from(assetS);
-          const txn = algosdk.makeApplicationCallTxnFromObject({
+          const accountTxnObj = {
             suggestedParams: {
               ...params,
               flatFee: true,
@@ -881,8 +914,9 @@ export default class CONTRACT {
             note: this.makeUNote(
               `${abiMethod.name} Group resource sharing transaction. Accounts: ${accountsGroup.length} Assets: ${foreignAssets.length} Apps: ${foreignApps.length}`
             ),
-          });
-          txns.push(txn);
+          };
+          accountTxnObjs.push(accountTxnObj);
+          //txns.push(algosdk.makeApplicationCallTxnFromObject(accountTxnObj));
         }
 
         // box resource sharing
@@ -894,7 +928,7 @@ export default class CONTRACT {
             boxNamesGroups.push(boxNames.get(app).slice(i, i + 7));
           }
           for (const boxNamesGroup of boxNamesGroups) {
-            const txn = algosdk.makeApplicationCallTxnFromObject({
+            const appBoxTxnObj = {
               suggestedParams: {
                 ...params,
                 flatFee: true,
@@ -910,8 +944,9 @@ export default class CONTRACT {
               note: this.makeUNote(
                 `${abiMethod.name} Group resource sharing transaction. Boxes: ${boxNamesGroup.length} Apps: 1 (${app})`
               ),
-            });
-            txns.push(txn);
+            };
+            appBoxTxnObjs.push(appBoxTxnObj);
+            //txns.push(algosdk.makeApplicationCallTxnFromObject(appBoxTxnObj));
           }
         }
 
@@ -979,6 +1014,24 @@ export default class CONTRACT {
         //   }
         // }
       } // end of group resource sharing
+
+      const groupResourceSharingTxns = [];
+      groupResourceSharingTxns.push(
+        ...[
+          ...assetHoldingTxnObjs,
+          ...appLocalTxnObjs,
+          ...accountTxnObjs,
+          ...appBoxTxnObjs,
+        ]
+      );
+
+      if (this.groupResourceSharingStrategy === "default") {
+        txns.push(
+          ...groupResourceSharingTxns.map((txn) =>
+            algosdk.makeApplicationCallTxnFromObject(txn)
+          )
+        );
+      }
 
       this.assetTransfers.forEach(([amount, token]) => {
         const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -1066,7 +1119,14 @@ export default class CONTRACT {
           };
           const srcTxn = !!txn.approvalProgram
             ? algosdk.makeApplicationCreateTxnFromObject(txnObj)
-            : algosdk.makeApplicationCallTxnFromObject(txnObj);
+            : algosdk.makeApplicationCallTxnFromObject({
+                ...txnObj,
+                ...(this.groupResourceSharingStrategy === "merge"
+                  ? extractAppCallTxnObjReferenced(
+                      groupResourceSharingTxns.pop() || {}
+                    )
+                  : {}),
+              });
           if (
             txn.xaid &&
             txn.snd &&
@@ -1160,7 +1220,9 @@ export default class CONTRACT {
             txns.push(srcTxn);
           }
         });
-      } else {
+      }
+      // no extra txns
+      else {
         // if we don't need to map references
         //
         // txns.push(
