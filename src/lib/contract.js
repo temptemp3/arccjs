@@ -1486,7 +1486,7 @@ export default class CONTRACT {
             txn.snd &&
             txn.arcv &&
             txn.snd === txn.arcv &&
-            txn.xamt
+            !txn.xamt
           ) {
             const assetTransferTxnObj = {
               suggestedParams: {
