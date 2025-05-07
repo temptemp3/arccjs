@@ -509,6 +509,8 @@ export default class CONTRACT {
     this.agentName = `arccjs-v${version}`;
     this.step = 2;
     this.debug = false;
+    this.enableRawBytes = false;
+    this.enableParamsLastRoundMod = false;
     for (const eventSpec of spec.events) {
       this[eventSpec.name] = async function (...args) {
         const response = await getEventsByNames(
@@ -611,6 +613,14 @@ export default class CONTRACT {
 
   getDebug() {
     return this.debug;
+  }
+
+  getEnableRawBytes() {
+    return this.enableRawBytes;
+  }
+
+  setEnableRawBytes(enableRawBytes) {
+    this.enableRawBytes = enableRawBytes;
   }
 
   setDebug(debug) {
@@ -748,6 +758,9 @@ export default class CONTRACT {
 
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
+      if (this.enableParamsLastRoundMod) {
+        params.lastRound = params.firstRound + 50;
+      }
 
       // Encode arguments
 
@@ -1368,6 +1381,9 @@ export default class CONTRACT {
     try {
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
+      if (this.enableParamsLastRoundMod) {
+        params.lastRound = params.firstRound + 50;
+      }
 
       const acctInfo = await this.algodClient
         .accountInformation(this.sender)
@@ -1645,7 +1661,10 @@ export default class CONTRACT {
       // -----------------------------------------
       //HACK: Hacking this because the decode function doesn't work on bytes
       // -----------------------------------------
-      else if (abiMethod.returns.type.childType == "byte") {
+      else if (
+        abiMethod.returns.type.childType == "byte" ||
+        !this.enableRawBytes
+      ) {
         result = new TextDecoder().decode(res_ui);
       }
       // -----------------------------------------
