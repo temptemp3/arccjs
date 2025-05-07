@@ -619,6 +619,14 @@ export default class CONTRACT {
     return this.enableRawBytes;
   }
 
+  getEnableParamsLastRoundMod() {
+    return this.enableParamsLastRoundMod;
+  }
+
+  setEnableParamsLastRoundMod(enableParamsLastRoundMod) {
+    this.enableParamsLastRoundMod = enableParamsLastRoundMod;
+  }
+
   setEnableRawBytes(enableRawBytes) {
     this.enableRawBytes = enableRawBytes;
   }
