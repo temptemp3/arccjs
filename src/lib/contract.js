@@ -1670,7 +1670,7 @@ export default class CONTRACT {
       //HACK: Hacking this because the decode function doesn't work on bytes
       // -----------------------------------------
       else if (
-        abiMethod.returns.type.childType == "byte" ||
+        abiMethod.returns.type.childType == "byte" &&
         !this.enableRawBytes
       ) {
         result = new TextDecoder().decode(res_ui);
