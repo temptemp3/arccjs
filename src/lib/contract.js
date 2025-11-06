@@ -878,9 +878,9 @@ export default class CONTRACT {
           //txns.push(algosdk.makeApplicationCallTxnFromObject(assetHoldingTxnObj));
         }
 
-        const boxApps = gurs.boxes.map((x) => x.app);
+        const boxApps = (gurs?.boxes||[]).map((x) => x.app);
         const boxNames = new Map();
-        for (const box of gurs.boxes) {
+        for (const box of gurs?.boxes||[]) {
           if (!boxNames.has(box.app)) {
             boxNames.set(box.app, []);
           }
