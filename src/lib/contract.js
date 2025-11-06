@@ -770,7 +770,7 @@ export default class CONTRACT {
       return abiMethod.args[index].type.encode(arg);
     });
     return {
-      from: this.sender,
+      sender: this.sender,
       appIndex: this.contractId,
       appArgs: [abiMethod.getSelector(), ...appArgs],
     };
@@ -785,7 +785,7 @@ export default class CONTRACT {
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
       if (this.enableParamsLastRoundMod) {
-        params.lastRound = params.firstRound + 50;
+        params.lastValid = params.firstValid + BigInt(50);
       }
 
       // Encode arguments
@@ -863,7 +863,7 @@ export default class CONTRACT {
               flatFee: true,
               fee: 1000,
             },
-            from: this.sender,
+            sender: this.sender,
             appIndex: this.beaconId,
             appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
             accounts: accounts,
@@ -875,12 +875,11 @@ export default class CONTRACT {
             ),
           };
           assetHoldingTxnObjs.push(assetHoldingTxnObj);
-          //txns.push(algosdk.makeApplicationCallTxnFromObject(assetHoldingTxnObj));
         }
 
-        const boxApps = (gurs?.boxes||[]).map((x) => x.app);
+        const boxApps = (gurs?.boxes || []).map((x) => x.app);
         const boxNames = new Map();
-        for (const box of gurs?.boxes||[]) {
+        for (const box of gurs?.boxes || []) {
           if (!boxNames.has(box.app)) {
             boxNames.set(box.app, []);
           }
@@ -911,7 +910,7 @@ export default class CONTRACT {
               flatFee: true,
               fee: 1000,
             },
-            from: this.sender,
+            sender: this.sender,
             appIndex: this.beaconId,
             appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
             accounts: accounts,
@@ -927,7 +926,6 @@ export default class CONTRACT {
             ),
           };
           appLocalTxnObjs.push(appLocalTxnObj);
-          //txns.push(algosdk.makeApplicationCallTxnFromObject(appLocalTxnObj));
         }
 
         const accountsGroups = [];
@@ -943,7 +941,7 @@ export default class CONTRACT {
               flatFee: true,
               fee: 1000,
             },
-            from: this.sender,
+            sender: this.sender,
             appIndex: this.beaconId,
             appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
             accounts: accountsGroup,
@@ -955,7 +953,6 @@ export default class CONTRACT {
             ),
           };
           accountTxnObjs.push(accountTxnObj);
-          //txns.push(algosdk.makeApplicationCallTxnFromObject(accountTxnObj));
         }
 
         // box resource sharing
@@ -973,7 +970,7 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: this.sender,
+              sender: this.sender,
               appIndex: this.beaconId,
               appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
               accounts: [],
@@ -985,73 +982,8 @@ export default class CONTRACT {
               ),
             };
             appBoxTxnObjs.push(appBoxTxnObj);
-            //txns.push(algosdk.makeApplicationCallTxnFromObject(appBoxTxnObj));
           }
         }
-
-        // alternative box resource sharing approach, looks promising
-
-        // const MAX_REFERENCES = 8;
-
-        // for (const [app, boxes] of boxNames.entries()) {
-        //   // Keep track of foreign apps and box names per transaction
-        //   let foreignApps = [];
-        //   let boxNamesGroup = [];
-
-        //   for (let i = 0; i < boxes.length; i++) {
-        //     // If adding this app and its box would exceed the max references, create the transaction
-        //     if (foreignApps.length + boxNamesGroup.length >= MAX_REFERENCES) {
-        //       const txn = algosdk.makeApplicationCallTxnFromObject({
-        //         suggestedParams: {
-        //           ...params,
-        //           flatFee: true,
-        //           fee: 1000,
-        //         },
-        //         from: this.sender,
-        //         appIndex: this.beaconId,
-        //         appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
-        //         accounts: [],
-        //         foreignApps: foreignApps, // combined foreign apps
-        //         foreignAssets: [],
-        //         boxes: boxNamesGroup, // combined boxes for the current transaction
-        //         note: this.makeUNote(
-        //           `${abiMethod.name} Group resource sharing transaction. Apps: ${foreignApps.length}, Boxes: ${boxNamesGroup.length}`
-        //         ),
-        //       });
-        //       txns.push(txn);
-
-        //       // Reset for the next transaction
-        //       foreignApps = [];
-        //       boxNamesGroup = [];
-        //     }
-
-        //     // Add the current app and its box to the current group
-        //     foreignApps.push(app);
-        //     boxNamesGroup.push({ appIndex: app, name: boxes[i] });
-        //   }
-
-        //   // Create a transaction for any remaining foreign apps and box names
-        //   if (foreignApps.length > 0 || boxNamesGroup.length > 0) {
-        //     const txn = algosdk.makeApplicationCallTxnFromObject({
-        //       suggestedParams: {
-        //         ...params,
-        //         flatFee: true,
-        //         fee: 1000,
-        //       },
-        //       from: this.sender,
-        //       appIndex: this.beaconId,
-        //       appArgs: [new Uint8Array(Buffer.from(this.beaconSel, "hex"))],
-        //       accounts: [],
-        //       foreignApps: foreignApps,
-        //       foreignAssets: [],
-        //       boxes: boxNamesGroup,
-        //       note: this.makeUNote(
-        //         `${abiMethod.name} Final group transaction. Apps: ${foreignApps.length}, Boxes: ${boxNamesGroup.length}`
-        //       ),
-        //     });
-        //     txns.push(txn);
-        //   }
-        // }
       } // end of group resource sharing
 
       const groupResourceSharingTxns = [];
@@ -1067,7 +999,10 @@ export default class CONTRACT {
       if (this.groupResourceSharingStrategy === "default") {
         txns.push(
           ...groupResourceSharingTxns.map((txn) =>
-            algosdk.makeApplicationCallTxnFromObject(txn)
+            algosdk.makeApplicationCallTxnFromObject({
+              ...txn,
+              onComplete: noOpOC,
+            })
           )
         );
       }
@@ -1079,8 +1014,8 @@ export default class CONTRACT {
             flatFee: true,
             fee: 1000,
           },
-          from: this.sender,
-          to: algosdk.getApplicationAddress(this.contractId),
+          sender: this.sender,
+          receiver: algosdk.getApplicationAddress(this.contractId),
           amount,
           assetIndex: token,
         });
@@ -1094,8 +1029,8 @@ export default class CONTRACT {
             flatFee: true,
             fee: 1000,
           },
-          from: this.sender,
-          to: addr,
+          sender: this.sender,
+          receiver: addr,
           amount,
           note: this.makeUNote(
             `${abiMethod.name} Payment of ${(
@@ -1109,8 +1044,8 @@ export default class CONTRACT {
 
       if (this.paymentAmount > 0) {
         const txnO = {
-          from: this.sender,
-          to: algosdk.getApplicationAddress(this.contractId),
+          sender: this.sender,
+          receiver: algosdk.getApplicationAddress(this.contractId),
           amount: this.paymentAmount,
           suggestedParams: {
             ...params,
@@ -1134,7 +1069,7 @@ export default class CONTRACT {
             flatFee: true,
             fee: this.fee,
           },
-          from: this.sender,
+          sender: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
           note: this.makeUNote(`${abiMethod.name} transaction`),
@@ -1165,6 +1100,7 @@ export default class CONTRACT {
                       groupResourceSharingTxns.pop() || {}
                     )
                   : {}),
+                onComplete: txnObj.onComplete || this.getOnComplete(),
               });
           if (
             txn.xaid &&
@@ -1179,8 +1115,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: txn.snd,
-              to: txn.arcv,
+              sender: txn.snd,
+              receiver: txn.arcv,
               amount: txn.xamt,
               assetIndex: txn.xaid,
               note: txn.xano,
@@ -1204,8 +1140,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: txn.snd,
-              to: txn.arcv,
+              sender: txn.snd,
+              receiver: txn.arcv,
               amount: 0,
               assetIndex: txn.xaid,
               note: this.makeUNote(
@@ -1225,8 +1161,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: this.sender,
-              to: algosdk.getApplicationAddress(txn.appIndex),
+              sender: this.sender,
+              receiver: algosdk.getApplicationAddress(txn.appIndex),
               amount: txn.payment,
               note:
                 txn.paymentNote ||
@@ -1243,8 +1179,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: this.sender,
-              to: algosdk.getApplicationAddress(txn.appIndex),
+              sender: this.sender,
+              receiver: algosdk.getApplicationAddress(txn.appIndex),
               amount: txn.aamt,
               assetIndex: txn.xaid,
               note: this.makeUNote(
@@ -1309,12 +1245,12 @@ export default class CONTRACT {
                     ...(turs?.apps ?? []),
                   ])
                 );
+
                 // transaction boxes
-                const tBoxes = this.enableGroupResourceSharing
-                  ? []
-                  : [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                      .filter((x) => tApps.includes(x.app))
-                      .map((x) => ({ appIndex: x.app, name: x.name }));
+                const tBoxes = [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
+                  .filter((x) => tApps.includes(Number(x.app)))
+                  .map((x) => ({ appIndex: Number(x.app), name: x.name }));
+
                 // transaction accounts
                 const tAccounts = Array.from(
                   new Set([
@@ -1356,8 +1292,8 @@ export default class CONTRACT {
               flatFee: true,
               fee: 1000,
             },
-            from: this.sender,
-            to: this.sender,
+            sender: this.sender,
+            receiver: this.sender,
             amount: 0,
             assetIndex: optIn,
             note: this.makeUNote(
@@ -1408,13 +1344,14 @@ export default class CONTRACT {
       // Get the suggested transaction parameters
       const params = await this.algodClient.getTransactionParams().do();
       if (this.enableParamsLastRoundMod) {
-        params.lastRound = params.firstRound + 50;
+        params.lastValid = params.firstValid + BigInt(50);
       }
 
       const acctInfo = await this.algodClient
         .accountInformation(this.sender)
         .do();
-      const authAddr = acctInfo["auth-addr"] || acctInfo.address;
+
+      const authAddr = acctInfo?.authAddr || acctInfo.address;
 
       // Encode arguments
 
@@ -1436,8 +1373,8 @@ export default class CONTRACT {
             flatFee: true,
             fee: 1000,
           },
-          from: this.sender,
-          to: algosdk.getApplicationAddress(this.contractId),
+          sender: this.sender,
+          receiver: algosdk.getApplicationAddress(this.contractId),
           amount,
           assetIndex: token,
         });
@@ -1454,8 +1391,8 @@ export default class CONTRACT {
             flatFee: true,
             fee: 1000,
           },
-          from: this.sender,
-          to: addr,
+          sender: this.sender,
+          receiver: addr,
           amount,
         });
         txns.push(txn);
@@ -1465,9 +1402,12 @@ export default class CONTRACT {
       // if payment amount is set
 
       if (this.paymentAmount > 0) {
+        const toAddress = algosdk
+          .getApplicationAddress(this.contractId)
+          .toString();
         const txnO = {
-          from: this.sender,
-          to: algosdk.getApplicationAddress(this.contractId),
+          sender: this.sender,
+          receiver: toAddress,
           amount: this.paymentAmount,
           suggestedParams: {
             ...params,
@@ -1489,7 +1429,7 @@ export default class CONTRACT {
             flatFee: true,
             fee: this.fee,
           },
-          from: this.sender,
+          sender: this.sender,
           appIndex: this.contractId,
           appArgs: [abiMethod.getSelector(), ...encodedArgs], // Adjust appArgs based on methodSpec and args
           onComplete: this.getOnComplete(),
@@ -1511,8 +1451,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: txn.snd,
-              to: txn.arcv,
+              sender: txn.snd,
+              receiver: txn.arcv,
               amount: txn.xamt,
               assetIndex: txn.xaid,
               note: txn.xano,
@@ -1536,8 +1476,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: txn.snd,
-              to: txn.arcv,
+              sender: txn.snd,
+              receiver: txn.arcv,
               amount: 0,
               assetIndex: txn.xaid,
             };
@@ -1554,8 +1494,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: this.sender,
-              to: algosdk.getApplicationAddress(txn.appIndex),
+              sender: this.sender,
+              receiver: algosdk.getApplicationAddress(txn.appIndex),
               amount: txn.payment,
             };
             txns.push(
@@ -1569,8 +1509,8 @@ export default class CONTRACT {
                 flatFee: true,
                 fee: 1000,
               },
-              from: this.sender,
-              to: algosdk.getApplicationAddress(txn.appIndex),
+              sender: this.sender,
+              receiver: algosdk.getApplicationAddress(txn.appIndex),
               amount: txn.aamt,
               assetIndex: txn.xaid,
             };
@@ -1587,6 +1527,7 @@ export default class CONTRACT {
               flatFee: true,
               fee: txn.fee || this.fee,
             },
+            onComplete: txn.onComplete || this.getOnComplete(),
           };
           txns.push(algosdk.makeApplicationCallTxnFromObject(appCallTxnObj));
         });
@@ -1602,16 +1543,19 @@ export default class CONTRACT {
 
       const txnGroup = new algosdk.modelsv2.SimulateRequestTransactionGroup({
         txns: algosdk.assignGroupID(txns).map((value, index) => {
-          return {
-            ...algosdk.decodeObj(
-              algosdk.encodeUnsignedSimulateTransaction(value)
-            ),
-            ...(authAddr && {
-              sgnr: new Uint8Array(
-                Buffer.from(algosdk.decodeAddress(authAddr).publicKey)
-              ),
-            }),
-          };
+          // Decode the encoded transaction bytes into a SignedTransaction instance
+          const encodedTxn = algosdk.encodeUnsignedSimulateTransaction(value);
+          const signedTxn = algosdk.decodeSignedTransaction(encodedTxn);
+
+          // If authAddr is provided, create a new SignedTransaction with sgnr field
+          if (authAddr) {
+            return new algosdk.SignedTransaction({
+              txn: signedTxn.txn,
+              sgnr: algosdk.decodeAddress(authAddr),
+            });
+          }
+
+          return signedTxn;
         }),
       });
 
@@ -1620,6 +1564,7 @@ export default class CONTRACT {
         txnGroups: [txnGroup],
         allowUnnamedResources: true,
         allowEmptySignatures: true,
+        fixSigs: true,
       });
 
       // Simulate the transaction group
@@ -1629,7 +1574,7 @@ export default class CONTRACT {
 
       return response;
     } catch (error) {
-      // console.error('Error in createAndSimulateTxn:', error);
+      console.error("Error in createAndSimulateTxn:", error);
       throw error; // Re-throw the error after logging it
     }
   }

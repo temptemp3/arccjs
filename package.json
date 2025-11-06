@@ -1,6 +1,6 @@
 {
   "name": "arccjs",
-  "version": "2.11.5",
+  "version": "3.0.0",
   "main": "index.js",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
@@ -16,7 +16,8 @@
     "transform": {}
   },
   "dependencies": {
-    "algosdk": "^2.7.0",
+    "@algorandfoundation/algokit-utils": "^9.1.2",
+    "algosdk": "^3.5.2",
     "buffer": "^6.0.3",
     "sha512": "^0.0.1"
   },
