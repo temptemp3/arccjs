@@ -1351,7 +1351,9 @@ export default class CONTRACT {
         .accountInformation(this.sender)
         .do();
 
-      const authAddr = acctInfo?.authAddr || acctInfo.address;
+      const authAddr = acctInfo?.authAddr
+        ? algosdk.encodeAddress(acctInfo.authAddr.publicKey)
+        : acctInfo.address;
 
       // Encode arguments
 
