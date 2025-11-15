@@ -1248,7 +1248,7 @@ export default class CONTRACT {
 
                 // transaction boxes
                 const tBoxes = [...(gurs?.boxes ?? []), ...(turs?.boxes ?? [])]
-                  .filter((x) => tApps.includes(Number(x.app)))
+                  //.filter((x) => tApps.includes(Number(x.app)))
                   .map((x) => ({ appIndex: Number(x.app), name: x.name }));
 
                 // transaction accounts
