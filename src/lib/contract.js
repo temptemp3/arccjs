@@ -347,29 +347,6 @@ const getEventsByNames = async (ci, names, query) => {
 
   let next;
 
-  // get txns
-
-  const txns = [];
-  next = undefined;
-  do {
-    const itxn = ci.indexerClient
-      .searchForTransactions()
-      .applicationID(ci.contractId)
-      .limit(1000)
-      .nextToken(next);
-    if (minRound) itxn.minRound(minRound);
-    if (maxRound) itxn.maxRound(maxRound);
-    if (address) itxn.address(address);
-    if (round) itxn.round(round);
-    if (txid) itxn.txid(txid);
-    if (limit) itxn.limit(limit);
-    const res = await itxn.do();
-    for (const txn of res.transactions) {
-      txns.push(txn);
-    }
-    next = res["next-token"];
-  } while (next);
-
   // get logs
 
   const logs = [];
@@ -378,7 +355,6 @@ const getEventsByNames = async (ci, names, query) => {
   do {
     const ilog = ci.indexerClient
       .lookupApplicationLogs(ci.contractId)
-      .limit(1000)
       .nextToken(next);
     if (minRound) ilog.minRound(minRound);
     if (maxRound) ilog.maxRound(maxRound);
@@ -387,38 +363,21 @@ const getEventsByNames = async (ci, names, query) => {
     if (txid) ilog.txid(txid);
     if (limit) ilog.limit(limit);
     const res = await ilog.do();
-    if (next === res["next-token"]) break;
-    const rLogData = res["log-data"];
-    const logData =
-      rLogData?.map((el) => ({
-        applicationId: res["application-id"],
-        round: res["current-round"],
-        txid: el["txid"],
-        logs: el["logs"],
-      })) || [];
+    if (next === res.nextToken) break;
+    const rLogData = res.logData;
+    const logData = rLogData;
     for (const log of logData) {
-      const key = log.txid + log.logs.join();
-      if (logS.has(key)) continue;
-      const txn = txns.find((x) => x.id === log.txid);
-      if (!txn) {
-        const { transaction: txn } = await ci.indexerClient
-          .lookupTransactionByID(log.txid)
-          .do();
-        logs.push({
-          ...log,
-          round: txn["confirmed-round"],
-          roundTime: txn["round-time"],
-        });
-      } else {
-        logs.push({
-          ...log,
-          round: txn["confirmed-round"],
-          roundTime: txn["round-time"],
-        });
+      const key = log.txid + Buffer.from(log.logs).toString("base64");
+      if (logS.has(key)) {
+        continue;
       }
+      logs.push({
+        txid: log.txid,
+        logs: log.logs,
+      });
       logS.add(key);
     }
-    next = res["next-token"];
+    next = res.nextToken;
   } while (next);
 
   // merge txns and logs adding round-time and confirmed-round to logdata
@@ -1228,6 +1187,7 @@ export default class CONTRACT {
         };
         // group unnamedResourcesAccessed
         const gurs = sRes.txnGroups[0]?.unnamedResourcesAccessed ?? ura;
+
         txns.push(
           ...appCallTxns.map((appCallTxn, j) =>
             algosdk.makeApplicationCallTxnFromObject(
@@ -1270,6 +1230,7 @@ export default class CONTRACT {
                   foreignApps: tApps,
                   foreignAssets: tAssets,
                 };
+
                 // final transaction
                 const ftxn = {
                   ...txn,
