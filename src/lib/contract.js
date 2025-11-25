@@ -364,9 +364,7 @@ const getEventsByNames = async (ci, names, query) => {
     if (limit) ilog.limit(limit);
     const res = await ilog.do();
     if (next === res.nextToken) break;
-    const rLogData = res.logData;
-    const logData = rLogData;
-    for (const log of logData) {
+    for (const log of res?.logData || []) {
       const key = log.txid + Buffer.from(log.logs).toString("base64");
       if (logS.has(key)) {
         continue;
