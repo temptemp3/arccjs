@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`AtomicComposer`**: high-level multi-contract atomic group builder that eliminates
+  manual `.obj` extraction, manual transaction arrays, and manual `setExtraTxns()` wiring.
+  Supports `addMethodCall()`, `addPayment()`, `addAssetOptIn()`, `withResourceSharing()`,
+  and terminal operations `build()`, `simulate()`, `execute(sk)`.
+- Exported composer types: `ComposerOptions`, `StepOptions`, `StepSummary`,
+  `BuildResult`, `ComposerSimulateResult`, `ExecuteResult`
 - Full type definitions for all public APIs (`types.ts`)
 - Exported types: `ABIContractSpec`, `ABIMethodSpec`, `ABIEventSpec`, `AlgodClient`,
   `IndexerClient`, `EventQuery`, `EventResult`, `ExtraTxn`, `MethodCallResult`, etc.
@@ -30,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vitest.config.ts`
 - Unit tests for utilities (string, account)
 - Behavior tests for CONTRACT construction, configuration, event selectors, simulation decoding
+- Composer tests: 32 tests covering step building, driver configuration, build/simulate/execute,
+  edge cases, and before/after DorkFi-style pattern comparison
 
 ### Fixed
 
