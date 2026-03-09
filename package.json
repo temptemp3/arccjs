@@ -1,37 +1,60 @@
 {
   "name": "arccjs",
   "version": "3.0.4",
-  "main": "index.js",
-  "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  "description": "ABI-centric Atomic Transaction Composer for Algorand AVM workflows",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
-  "author": "",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "Nicholas Shellabarger",
   "license": "MIT",
+  "keywords": [
+    "algorand",
+    "avm",
+    "abi",
+    "transaction",
+    "composer",
+    "smart-contract",
+    "arc200",
+    "voi"
+  ],
   "engines": {
-    "npm": ">=10.2.0",
     "node": ">=20.9.0"
   },
-  "jest": {
-    "testEnvironment": "jest-environment-node",
-    "transform": {}
-  },
-  "dependencies": {
-    "@algorandfoundation/algokit-utils": "^9.1.2",
-    "algosdk": "^3.5.2",
-    "buffer": "^6.0.3",
-    "sha512": "^0.0.1"
-  },
-  "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/temptemp3/arccjs.git"
+    "url": "git+https://github.com/temptemp3/arccjs.git"
   },
   "bugs": {
     "url": "https://github.com/temptemp3/arccjs/issues"
   },
   "homepage": "https://github.com/temptemp3/arccjs#readme",
-  "description": "",
+  "dependencies": {
+    "algosdk": "^3.5.2",
+    "buffer": "^6.0.3",
+    "js-sha512": "^0.9.0"
+  },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "@types/node": "^25.3.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

@@ -1,0 +1,63 @@
+# Cursor Rules — arccjs
+
+Read ASDF.md for canonical project context.
+Read docs/SKILL.md for full architecture, conventions, and patterns.
+
+## Project
+
+arccjs is an ABI-centric Atomic Transaction Composer for Algorand AVM.
+TypeScript, ESM-only, Node >= 20.9.
+
+## Commands
+
+- Build: `npm run build`
+- Test: `npm test`
+- Typecheck: `npm run typecheck`
+
+## Rules
+
+- All exported types go in `src/types.ts` with JSDoc.
+- Use `js-sha512` for hashing — never the `sha512` package.
+- Keep `.js` extensions in all TypeScript import paths (Node ESM requirement).
+- No `console.log` or `console.error` in library code.
+- Don't remove `[key: string]: unknown` from CONTRACT — it enables dynamic methods.
+- Don't add `@algorandfoundation/algokit-utils` — removed as unused.
+- Test with Vitest. Mock algod/indexer clients. Follow existing mock patterns.
+- Keep `version.ts` in sync with `package.json`.
+- Preserve CONTRACT's external API: constructor signature, dynamic method
+  binding, getters/setters, return shapes.
+- Run `npm run build` after changes.
+
+## Architecture
+
+CONTRACT takes a JSON ABI spec, dynamically attaches callable methods,
+and handles: encode → simulate → resolve resources → build unsigned txns.
+The `custom()` method is reserved — skips primary app call, assembles
+group from extraTxns/transfers/optIns only.
+
+AtomicComposer is a chainable builder that compiles steps into ExtraTxn[]
+and delegates to a driver CONTRACT with a `custom` spec. Never
+reimplements transaction logic.
+
+ExtraTxn is the interchange format between all composition mechanisms.
+
+## Key Files
+
+- `src/lib/contract.ts` — CONTRACT class (~1600 lines), core of library
+- `src/lib/composer.ts` — AtomicComposer, multi-contract groups
+- `src/types.ts` — all exported types
+- `src/index.ts` — public export surface
+
+## Common Patterns
+
+When adding a new StepOption to AtomicComposer:
+1. Add field to StepOptions in src/types.ts
+2. Handle in methodCallToExtraTxn() in composer.ts
+3. Add test in composer.test.ts
+4. Update docs/composer.md and README.md
+
+When adding a setter/getter to CONTRACT:
+1. Add property to class, initialize in constructor
+2. Add getter and setter methods
+3. Add round-trip test in contract.test.ts
+4. Document in docs/contract.md
