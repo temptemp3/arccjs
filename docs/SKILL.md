@@ -10,18 +10,23 @@ agent, you are in the right place.
 
 ## Convention File Index
 
-This project maintains agent-assist files for multiple frameworks.
-All point to this file as the canonical reference. When updating
-project conventions, update this file first — the root-level files
-are summaries.
+This project follows the [Agent Skill Discovery Format (ASDF)](https://github.com/MaidToShelly/asdf)
+specification. Per ASDF-0001, agents should search for context files
+in this order:
 
-| File | Convention | Audience |
-|------|-----------|----------|
-| `docs/SKILL.md` | Canonical reference | All agents (this file) |
-| `CLAUDE.md` | Claude Code / Claude agents | Anthropic Claude |
-| `.cursorrules` | Cursor IDE | Cursor AI |
-| `AGENTS.md` | OpenClaw / Codex / Devin / SWE-agent | General agents |
-| `CONTRIBUTING.md` | GitHub Copilot Workspace / human contributors | Copilot + humans |
+| Priority | File | Convention | Audience |
+|----------|------|-----------|----------|
+| — | `docs/SKILL.md` | Detailed reference | All agents (this file) |
+| 1 | `ASDF.md` | ASDF-0001 discovery + ASDF-0003 metadata + skill definitions | ASDF-aware agents |
+| 2 | `AGENTS.md` | OpenClaw / Codex / Devin / SWE-agent | General agents |
+| 3 | `CLAUDE.md` | Claude Code / Claude agents | Anthropic Claude |
+| 4 | `.cursor/rules` | Cursor IDE (modern) | Cursor AI |
+| 4 | `.cursorrules` | Cursor IDE (legacy) | Cursor AI |
+| 5 | `CONTRIBUTING.md` | GitHub Copilot Workspace / human contributors | Copilot + humans |
+
+All root-level files are adapters that point to `ASDF.md` as the
+canonical project context, which in turn references this file for
+detailed architecture and conventions.
 
 When adding a new convention file for another agent framework, add it
 to this table and ensure it references `docs/SKILL.md`.

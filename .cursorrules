@@ -1,7 +1,7 @@
 # Cursor Rules — arccjs
 
-The full agent reference lives at docs/SKILL.md.
-Read that file for complete architecture, conventions, and patterns.
+Read ASDF.md for canonical project context.
+Read docs/SKILL.md for full architecture, conventions, and patterns.
 
 ## Project
 

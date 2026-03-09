@@ -1,5 +1,8 @@
 # Contributing to arccjs
 
+Read [ASDF.md](ASDF.md) for canonical project context.
+Read [docs/SKILL.md](docs/SKILL.md) for full architecture and conventions.
+
 ## Quick Start
 
 ```bash

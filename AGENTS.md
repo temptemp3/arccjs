@@ -1,9 +1,17 @@
+---
+asdf_version: 1
+project: arccjs
+languages: [typescript]
+---
+
 # AGENTS.md — Agent Instructions for arccjs
 
 This file provides instructions for AI coding agents (OpenClaw, Codex,
 Devin, SWE-agent, etc.) working in the arccjs repository.
 
-The full agent reference lives at [docs/SKILL.md](docs/SKILL.md).
+Read [ASDF.md](ASDF.md) for canonical project context.
+Read [docs/SKILL.md](docs/SKILL.md) for full architecture, conventions,
+and patterns.
 
 ## Overview
 

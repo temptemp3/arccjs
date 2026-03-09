@@ -1,10 +1,17 @@
+---
+asdf_version: 1
+project: arccjs
+languages: [typescript]
+---
+
 # CLAUDE.md — Project Context for Claude Code
 
 This file provides context for Claude Code and Claude-based agents
 working in the arccjs repository.
 
-The full agent reference lives at [docs/SKILL.md](docs/SKILL.md).
-Read that file for complete architecture, conventions, and patterns.
+Read [ASDF.md](ASDF.md) for canonical project context.
+Read [docs/SKILL.md](docs/SKILL.md) for full architecture, conventions,
+and patterns.
 
 ## Quick Context
 
